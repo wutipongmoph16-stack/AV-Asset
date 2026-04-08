@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AVEAM Mobile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap");
+      body {
+        font-family: "Sarabun", sans-serif;
+        background-color: #f3f4f6;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+    </style>
+  </head>
+  <body class="flex flex-col h-screen overflow-hidden">
+    <header
+      class="bg-blue-700 text-white p-4 shadow-md flex justify-between items-center z-30 shrink-0"
+    >
+      <div class="flex items-center gap-2">
+        <div
+          class="bg-white text-blue-700 font-bold w-8 h-8 rounded-full flex justify-center items-center"
+        >
+          AD
+        </div>
+        <h1 class="font-bold text-lg leading-none">
+          AVEAM
+          <span class="text-xs font-normal opacity-80 block">Mobile App</span>
+        </h1>
+      </div>
+      <div
+        class="bg-blue-800 px-3 py-1 rounded-full text-xs font-bold border border-blue-600"
+      >
+        สสจ.ลพบุรี
+      </div>
+    </header>
+
+    <main
+      class="flex-1 overflow-y-auto pb-20 relative bg-gray-100"
+      id="main-content"
+    >
+      <div
+        class="sticky top-0 bg-gray-100 p-3 z-20 shadow-sm border-b border-gray-200"
+      >
+        <div class="relative">
+          <span class="absolute left-3 top-2.5 text-gray-400">🔍</span>
+          <input
+            type="text"
+            id="searchInput"
+            oninput="handleSearch()"
+            placeholder="ค้นหาชื่อ, รหัส, สถานที่..."
+            class="w-full bg-white border border-gray-300 rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+          />
+        </div>
+        <div class="flex justify-between items-center mt-2 px-1">
+          <span class="text-xs text-gray-500 font-bold" id="total-items"
+            >กำลังโหลดข้อมูล...</span
+          >
+        </div>
+      </div>
+
+      <div class="p-3" id="crud-card-container">
+        <div class="text-center py-10 text-gray-500 text-sm">
+          ⏳ กำลังโหลดข้อมูล...
+        </div>
+      </div>
+    </main>
+
+    <button
+      onclick="openMobileModal()"
+      class="fixed bottom-20 right-4 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex justify-center items-center text-3xl font-bold hover:bg-blue-700 active:scale-95 transition z-30 pb-1"
+    >
+      +
+    </button>
+
+    <nav
+      class="bg-white border-t border-gray-200 flex justify-between items-center px-6 py-2 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-30 shrink-0"
+    >
+      <button class="flex flex-col items-center text-blue-600 w-16">
+        <span class="text-xl mb-1">📦</span>
+        <span class="text-[10px] font-bold">คลังอุปกรณ์</span>
+      </button>
+      <button
+        onclick="
+          Swal.fire(
+            'กำลังพัฒนา',
+            'ระบบยืม-คืน สำหรับมือถือ กำลังมาครับ',
+            'info',
+          )
+        "
+        class="flex flex-col items-center text-gray-400 hover:text-blue-500 w-16 transition"
+      >
+        <span class="text-xl mb-1">🛒</span>
+        <span class="text-[10px] font-bold">ยืม-คืน</span>
+      </button>
+      <button
+        onclick="Swal.fire('กำลังพัฒนา', 'ระบบสแกน QR กำลังมาครับ', 'info')"
+        class="flex flex-col items-center text-gray-400 hover:text-blue-500 w-16 transition"
+      >
+        <span class="text-xl mb-1">📷</span>
+        <span class="text-[10px] font-bold">สแกน</span>
+      </button>
+    </nav>
+
+    <div
+      id="mobile-crud-modal"
+      class="hidden fixed inset-0 bg-gray-50 z-50 flex flex-col animate-fade-in"
+    >
+      <div
+        class="bg-blue-700 text-white p-4 flex justify-between items-center shadow-md shrink-0"
+      >
+        <button
+          onclick="closeMobileModal()"
+          class="text-white font-bold text-sm px-2 py-1 bg-blue-800 rounded"
+        >
+          ◀ ปิด
+        </button>
+        <h2 id="modal-title" class="text-base font-bold">
+          📦 เพิ่มอุปกรณ์ใหม่
+        </h2>
+        <button
+          onclick="saveEquipment()"
+          class="text-white font-bold text-sm px-3 py-1 bg-green-500 rounded shadow"
+        >
+          บันทึก
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4">
+        <form id="crud-form" class="space-y-4 pb-20">
+          <input type="hidden" id="eqId" />
+
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <h4 class="text-blue-600 font-bold text-xs mb-3 uppercase">
+              📝 ข้อมูลทั่วไป
+            </h4>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1"
+                  >ชื่ออุปกรณ์ *</label
+                ><input
+                  type="text"
+                  id="eqName"
+                  class="w-full border bg-gray-50 p-2 rounded text-sm"
+                />
+              </div>
+              <div class="flex gap-3">
+                <div class="flex-1">
+                  <label class="block text-xs font-bold text-gray-500 mb-1"
+                    >ยี่ห้อ</label
+                  ><input
+                    type="text"
+                    id="eqBrand"
+                    class="w-full border bg-gray-50 p-2 rounded text-sm"
+                  />
+                </div>
+                <div class="flex-1">
+                  <label class="block text-xs font-bold text-gray-500 mb-1"
+                    >รุ่น</label
+                  ><input
+                    type="text"
+                    id="eqModel"
+                    class="w-full border bg-gray-50 p-2 rounded text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1"
+                  >S/N</label
+                ><input
+                  type="text"
+                  id="eqSN"
+                  class="w-full border bg-gray-50 p-2 rounded text-sm"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1"
+                  >เลขครุภัณฑ์</label
+                ><input
+                  type="text"
+                  id="eqAssetId"
+                  class="w-full border bg-gray-50 p-2 rounded text-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <h4 class="text-yellow-600 font-bold text-xs mb-3 uppercase">
+              🏷️ หมวดหมู่ & สถานที่
+            </h4>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1"
+                  >หมวดหมู่</label
+                >
+                <select
+                  id="eqCategory"
+                  class="w-full border bg-gray-50 p-2 rounded text-sm"
+                >
+                  <option value="อุปกรณ์ระบบภาพ (Visual)">ภาพ (Visual)</option>
+                  <option value="อุปกรณ์ระบบเสียง (Audio)">
+                    เสียง (Audio)
+                  </option>
+                  <option value="อุปกรณ์ระบบแสง (Lighting)">
+                    แสง (Lighting)
+                  </option>
+                  <option value="สายสัญญาณ (Cables)">สายสัญญาณ (Cables)</option>
+                  <option value="อื่นๆ (Others)">อื่นๆ</option>
+                </select>
+              </div>
+              <div class="flex gap-3">
+                <div class="flex-1">
+                  <label class="block text-xs font-bold text-gray-500 mb-1"
+                    >สถานะ</label
+                  >
+                  <select
+                    id="eqStatus"
+                    class="w-full border bg-gray-50 p-2 rounded text-sm font-bold text-blue-600"
+                  >
+                    <option value="ว่าง">✅ ว่าง</option>
+                    <option value="ถูกยืม">🛒 ถูกยืม</option>
+                    <option value="ส่งซ่อม">🔧 ส่งซ่อม</option>
+                    <option value="ชำรุด">❌ ชำรุด</option>
+                  </select>
+                </div>
+                <div class="flex-1">
+                  <label class="block text-xs font-bold text-gray-500 mb-1"
+                    >สถานที่เก็บ</label
+                  >
+                  <select
+                    id="eqLocation"
+                    class="w-full border bg-gray-50 p-2 rounded text-sm"
+                  >
+                    <option value="ห้องเก็บอุปกรณ์ส่วนกลาง">
+                      ห้องส่วนกลาง
+                    </option>
+                    <option value="ห้องประชุมพระนารายณ์">ห้องนารายณ์</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <h4 class="text-green-600 font-bold text-xs mb-3 uppercase">
+              🖼️ จัดการรูปภาพ (ถ่ายจากมือถือได้เลย)
+            </h4>
+            <div
+              id="edit-image-gallery"
+              class="flex overflow-x-auto gap-2 mb-3 pb-2 hide-scrollbar"
+            ></div>
+            <label
+              class="flex justify-center items-center w-full h-20 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 text-blue-600 font-bold text-sm cursor-pointer active:bg-blue-100"
+            >
+              + ถ่ายรูป / อัปโหลดใหม่
+              <input
+                type="file"
+                id="eqImage"
+                accept="image/*"
+                multiple
+                class="hidden"
+              />
+            </label>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div
+      id="mobile-view-modal"
+      class="hidden fixed inset-0 bg-gray-50 z-40 flex flex-col animate-fade-in"
+    >
+      <div
+        class="bg-slate-800 text-white p-4 flex justify-between items-center shadow-md shrink-0"
+      >
+        <button
+          onclick="closeViewModal()"
+          class="text-white font-bold text-sm px-3 py-1.5 bg-slate-700 rounded-lg shadow-sm"
+        >
+          ◀ กลับ
+        </button>
+        <h2 class="text-base font-bold">📋 ข้อมูลอุปกรณ์</h2>
+        <button
+          onclick="editFromView()"
+          class="text-white font-bold text-sm px-3 py-1.5 bg-yellow-500 rounded-lg shadow-sm text-slate-900"
+        >
+          ✏️ แก้ไข
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 pb-20">
+        <div
+          class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4"
+        >
+          <div
+            id="view-gallery-thumbs"
+            class="flex gap-3 overflow-x-auto pb-2 hide-scrollbar snap-x"
+          ></div>
+          <p class="text-center text-[10px] text-gray-400 mt-2">
+            👆 แตะที่รูปภาพเพื่อดูขนาดเต็มจอ
+          </p>
+        </div>
+
+        <div
+          class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4"
+        >
+          <div class="border-b pb-3">
+            <h3
+              id="v-name"
+              class="text-xl font-bold text-gray-800 leading-tight"
+            ></h3>
+            <p
+              id="v-id"
+              class="text-sm font-mono font-bold text-blue-600 mt-1"
+            ></p>
+            <div id="v-status-badge" class="mt-2"></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-y-3 gap-x-2 text-sm">
+            <div
+              class="col-span-2 text-gray-500 text-xs font-bold uppercase mt-2"
+            >
+              📍 สถานที่เก็บ
+            </div>
+            <div
+              class="col-span-2 font-medium text-gray-800 bg-gray-50 p-2 rounded"
+              id="v-location"
+            ></div>
+
+            <div
+              class="col-span-2 text-gray-500 text-xs font-bold uppercase border-t pt-3 mt-1"
+            >
+              ⚙️ ข้อมูลทางเทคนิค
+            </div>
+            <div class="text-gray-500">หมวดหมู่:</div>
+            <div
+              class="font-medium text-right text-gray-800"
+              id="v-category"
+            ></div>
+            <div class="text-gray-500">ยี่ห้อ:</div>
+            <div
+              class="font-medium text-right text-gray-800"
+              id="v-brand"
+            ></div>
+            <div class="text-gray-500">รุ่น:</div>
+            <div
+              class="font-medium text-right text-gray-800"
+              id="v-model"
+            ></div>
+            <div class="text-gray-500">S/N:</div>
+            <div
+              class="font-medium text-right text-orange-600 font-mono"
+              id="v-sn"
+            ></div>
+            <div class="text-gray-500">เลขครุภัณฑ์:</div>
+            <div
+              class="font-medium text-right text-blue-600"
+              id="v-asset"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="mobile-lightbox"
+      class="hidden fixed inset-0 bg-black z-[100] flex flex-col animate-fade-in"
+    >
+      <button
+        onclick="closeLightbox()"
+        class="absolute top-4 right-4 text-white bg-black/50 w-10 h-10 rounded-full text-2xl z-20 flex items-center justify-center backdrop-blur-sm"
+      >
+        &times;
+      </button>
+
+      <div
+        id="lightbox-container"
+        class="flex-1 flex overflow-x-auto snap-x snap-mandatory hide-scrollbar items-center"
+        onscroll="updateLightboxDots()"
+      ></div>
+
+      <div
+        id="lightbox-dots"
+        class="absolute bottom-8 left-0 right-0 flex justify-center gap-2 z-20"
+      ></div>
+    </div>
+
+    <script>
+      // 🛑 นำลิ้งก์ Web App (Deployment) ของ GAS มาวางที่นี่
+      const API_URL =
+        "https://script.google.com/macros/s/AKfycbyRiTxTt0lgo0bAU7DIq7QB5jWx9Zx1EV_8Zs7mW1LphcgJT2WbK2LkrEV792PPTH5wSg/exec";
+
+      let globalEquipmentList = [];
+      let filteredList = [];
+      let currentEditId = null;
+      let existingImagesToKeep = [];
+      let deletedImageUrls = [];
+
+      window.onload = function () {
+        loadDataFromAPI();
+      };
+
+      // 🟢 1. โหลดข้อมูลผ่าน Fetch API (GET)
+      async function loadDataFromAPI() {
+        Swal.fire({
+          title: "กำลังโหลดข้อมูล...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+        try {
+          // ยิง API แบบ GET โดยระบุ parameter action=getEquipmentData
+          const response = await fetch(`${API_URL}?action=getEquipment`);
+          const data = await response.json();
+
+          Swal.close();
+          if (data.status === "success") {
+            globalEquipmentList = data.data || [];
+            filteredList = [...globalEquipmentList];
+            renderMobileCards();
+          } else {
+            Swal.fire("ข้อผิดพลาด", "ไม่สามารถโหลดข้อมูลได้", "error");
+          }
+        } catch (error) {
+          Swal.fire(
+            "ข้อผิดพลาด",
+            "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (API Error)",
+            "error",
+          );
+          console.error(error);
+        }
+      }
+
+      // 🟢 2. วาดการ์ด
+      function renderMobileCards() {
+        const container = document.getElementById("crud-card-container");
+        document.getElementById("total-items").innerText =
+          `พบ ${filteredList.length} รายการ`;
+        if (filteredList.length === 0) {
+          container.innerHTML = `<div class="text-center py-10 text-gray-400">ไม่พบข้อมูลอุปกรณ์</div>`;
+          return;
+        }
+
+        let html = "";
+        filteredList.forEach((item) => {
+          const rawUrl = item.Image_URL || "";
+          let thumbUrl =
+            rawUrl.split(",")[0].trim() ||
+            "https://via.placeholder.com/150?text=No+Img";
+          if (thumbUrl.includes("drive.google.com/uc?id=")) {
+            thumbUrl = `https://drive.google.com/thumbnail?id=${thumbUrl.split("id=")[1].split("&")[0]}&sz=w200`;
+          }
+
+          let statusBadge = `<span class="inline-block mt-1 px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] rounded-full font-bold">${item.Status}</span>`;
+          if (item.Status === "ว่าง")
+            statusBadge = `<span class="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 text-[10px] rounded-full font-bold">✅ ว่าง</span>`;
+          if (item.Status === "ถูกยืม")
+            statusBadge = `<span class="inline-block mt-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] rounded-full font-bold">🛒 ถูกยืม</span>`;
+
+          html += `
+                <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex gap-3 mb-3 relative active:bg-gray-50 transition" onclick="viewMobileItem('${item.Eq_ID}')">
+                    <img src="${thumbUrl}" class="w-20 h-20 object-cover rounded-lg bg-gray-50 shrink-0">
+                    <div class="flex-1 min-w-0 flex flex-col justify-center">
+                        <h3 class="font-bold text-gray-800 text-sm truncate">${item.Eq_Name || "ไม่มีชื่อ"}</h3>
+                        <p class="text-[11px] text-blue-600 font-mono font-bold">${item.Eq_ID}</p>
+                        <p class="text-[11px] text-gray-500 truncate mb-1">📍 ${item.Location || "ไม่ระบุ"}</p>
+                        <div>${statusBadge}</div>
+                    </div>
+                </div>`;
+        });
+        container.innerHTML = html;
+      }
+
+      // 🟢 3. ค้นหา
+      function handleSearch() {
+        const query = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        filteredList = globalEquipmentList.filter((item) => {
+          return (
+            (item.Eq_ID && item.Eq_ID.toLowerCase().includes(query)) ||
+            (item.Eq_Name && item.Eq_Name.toLowerCase().includes(query))
+          );
+        });
+        renderMobileCards();
+      }
+
+      function openMobileModal() {
+        currentEditId = null;
+        document.getElementById("modal-title").innerText =
+          "📦 เพิ่มอุปกรณ์ใหม่";
+        document.getElementById("crud-form").reset();
+        document.getElementById("eqId").value = "";
+        existingImagesToKeep = [];
+        deletedImageUrls = [];
+        renderEditGallery();
+        document.getElementById("mobile-crud-modal").classList.remove("hidden");
+      }
+
+      function editMobileItem(id) {
+        currentEditId = id;
+        document.getElementById("modal-title").innerText = `✏️ แก้ไข: ${id}`;
+        const item = globalEquipmentList.find((x) => x.Eq_ID == id);
+        if (item) {
+          [
+            "eqId",
+            "eqName",
+            "eqBrand",
+            "eqModel",
+            "eqSN",
+            "eqAssetId",
+            "eqCategory",
+            "eqStatus",
+            "eqLocation",
+          ].forEach((field) => {
+            document.getElementById(field).value =
+              item[
+                field === "eqId"
+                  ? "Eq_ID"
+                  : field === "eqName"
+                    ? "Eq_Name"
+                    : field === "eqBrand"
+                      ? "Brand"
+                      : field === "eqModel"
+                        ? "Model"
+                        : field === "eqSN"
+                          ? "SN"
+                          : field === "eqAssetId"
+                            ? "Asset_ID"
+                            : field === "eqCategory"
+                              ? "Category"
+                              : field === "eqStatus"
+                                ? "Status"
+                                : "Location"
+              ] || (field === "eqStatus" ? "ว่าง" : "");
+          });
+          existingImagesToKeep = (item.Image_URL || "")
+            .split(",")
+            .filter((u) => u.trim() !== "");
+          deletedImageUrls = [];
+          renderEditGallery();
+        }
+        document.getElementById("mobile-crud-modal").classList.remove("hidden");
+      }
+
+      function closeMobileModal() {
+        document.getElementById("mobile-crud-modal").classList.add("hidden");
+      }
+
+      function renderEditGallery() {
+        const gallery = document.getElementById("edit-image-gallery");
+        gallery.innerHTML = "";
+        existingImagesToKeep.forEach((url, index) => {
+          let displayUrl = url.includes("drive.google.com/uc?id=")
+            ? `https://drive.google.com/thumbnail?id=${url.split("id=")[1].split("&")[0]}&sz=w150`
+            : url;
+          gallery.innerHTML += `<div class="relative inline-block shrink-0"><img src="${displayUrl}" class="w-16 h-16 object-cover rounded-lg border shadow-sm"><div onclick="removeExistingImage(${index})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center cursor-pointer text-[10px] font-bold">X</div></div>`;
+        });
+      }
+      function removeExistingImage(index) {
+        deletedImageUrls.push(existingImagesToKeep.splice(index, 1)[0]);
+        renderEditGallery();
+      }
+
+      // 🟢 4. บันทึกข้อมูลผ่าน Fetch API (POST)
+      async function saveEquipment() {
+        const eqName = document.getElementById("eqName").value;
+        if (!eqName) {
+          Swal.fire("แจ้งเตือน", "กรุณากรอกชื่ออุปกรณ์ *", "warning");
+          return;
+        }
+
+        Swal.fire({
+          title: "กำลังบันทึก...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
+        const payloadData = {
+          eqId: currentEditId || "",
+          eqName: eqName,
+          brand: document.getElementById("eqBrand").value,
+          model: document.getElementById("eqModel").value,
+          sn: document.getElementById("eqSN").value,
+          assetId: document.getElementById("eqAssetId").value,
+          category: document.getElementById("eqCategory").value,
+          status: document.getElementById("eqStatus").value,
+          location: document.getElementById("eqLocation").value,
+          retainedImages: existingImagesToKeep.join(","),
+          deletedImages: deletedImageUrls.join(","),
+          images: [],
+        };
+
+        const fileInput = document.getElementById("eqImage");
+        if (fileInput && fileInput.files.length > 0) {
+          const filesToUpload = Array.from(fileInput.files).slice(
+            0,
+            5 - existingImagesToKeep.length,
+          );
+          payloadData.images = await Promise.all(
+            filesToUpload.map(
+              (file) =>
+                new Promise((resolve) => {
+                  const reader = new FileReader();
+                  reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                      const canvas = document.createElement("canvas");
+                      let w = img.width,
+                        h = img.height;
+                      if (w > h) {
+                        if (w > 600) {
+                          h *= 600 / w;
+                          w = 600;
+                        }
+                      } else {
+                        if (h > 600) {
+                          w *= 600 / h;
+                          h = 600;
+                        }
+                      }
+                      canvas.width = w;
+                      canvas.height = h;
+                      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+                      resolve({
+                        base64Image: canvas
+                          .toDataURL("image/jpeg", 0.8)
+                          .split(",")[1],
+                        mimeType: "image/jpeg",
+                      });
+                    };
+                    img.src = e.target.result;
+                  };
+                  reader.readAsDataURL(file);
+                }),
+            ),
+          );
+        }
+
+        try {
+          // ส่งข้อมูลไปที่หลังบ้านแบบ POST ผ่าน API
+          const response = await fetch(API_URL, {
+            method: "POST",
+            body: JSON.stringify({
+              action: "saveEquipment",
+              payload: payloadData,
+            }), // ห่อข้อมูลส่งไป
+          });
+
+          const resp = await response.json();
+
+          if (resp.status === "success") {
+            Swal.fire({
+              icon: "success",
+              title: "บันทึกสำเร็จ",
+              showConfirmButton: false,
+              timer: 1500,
+            });
+            closeMobileModal();
+            loadDataFromAPI(); // โหลดข้อมูลใหม่เพื่ออัปเดตหน้าจอ
+          } else {
+            Swal.fire("ข้อผิดพลาด", "บันทึกไม่สำเร็จ", "error");
+          }
+        } catch (error) {
+          Swal.fire(
+            "ข้อผิดพลาด",
+            "ส่งข้อมูลไม่สำเร็จ (CORS/Network Error)",
+            "error",
+          );
+          console.error(error);
+        }
+      }
+
+      // ==========================================
+      // 👁️ ระบบดูรายละเอียด (View Details)
+      // ==========================================
+      let currentViewItem = null;
+
+      function viewMobileItem(id) {
+        currentViewItem = globalEquipmentList.find((x) => x.Eq_ID == id);
+        if (!currentViewItem) return;
+
+        // นำข้อมูลไปใส่ในหน้าต่าง
+        document.getElementById("v-name").innerText =
+          currentViewItem.Eq_Name || "-";
+        document.getElementById("v-id").innerText =
+          currentViewItem.Eq_ID || "-";
+        document.getElementById("v-category").innerText =
+          currentViewItem.Category || "-";
+        document.getElementById("v-brand").innerText =
+          currentViewItem.Brand || "-";
+        document.getElementById("v-model").innerText =
+          currentViewItem.Model || "-";
+        document.getElementById("v-sn").innerText = currentViewItem.SN || "-";
+        document.getElementById("v-asset").innerText =
+          currentViewItem.Asset_ID || "-";
+        document.getElementById("v-location").innerText =
+          currentViewItem.Location || "-";
+
+        // จัดการป้ายสถานะ
+        let statusHtml = `<span class="px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full font-bold">${currentViewItem.Status}</span>`;
+        if (currentViewItem.Status === "ว่าง")
+          statusHtml = `<span class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-bold">✅ ว่าง (พร้อมใช้)</span>`;
+        if (currentViewItem.Status === "ถูกยืม")
+          statusHtml = `<span class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full font-bold">🛒 ถูกยืม</span>`;
+        if (
+          currentViewItem.Status === "ส่งซ่อม" ||
+          currentViewItem.Status === "ชำรุด"
+        )
+          statusHtml = `<span class="px-3 py-1 bg-red-100 text-red-700 text-xs rounded-full font-bold">🔧 ${currentViewItem.Status}</span>`;
+        document.getElementById("v-status-badge").innerHTML = statusHtml;
+
+        // จัดการรูปภาพขนาดย่อ (Thumbnails)
+        const rawUrl = currentViewItem.Image_URL || "";
+        const urls = rawUrl.split(",").filter((u) => u.trim() !== "");
+        const galDiv = document.getElementById("view-gallery-thumbs");
+        galDiv.innerHTML = "";
+
+        if (urls.length === 0) {
+          galDiv.innerHTML = `<div class="w-full text-center text-gray-400 py-6 bg-gray-50 rounded-lg text-sm border border-dashed border-gray-200">ไม่มีรูปภาพประกอบ</div>`;
+        } else {
+          urls.forEach((url, i) => {
+            let thumb = url.includes("drive.google.com/uc?id=")
+              ? `https://drive.google.com/thumbnail?id=${url.split("id=")[1].split("&")[0]}&sz=w300`
+              : url;
+            galDiv.innerHTML += `<img src="${thumb}" onclick="openLightbox(${i})" class="w-32 h-32 object-cover rounded-xl shadow-sm border border-gray-200 shrink-0 cursor-pointer active:opacity-70 snap-center">`;
+          });
+        }
+
+        document.getElementById("mobile-view-modal").classList.remove("hidden");
+      }
+
+      function closeViewModal() {
+        document.getElementById("mobile-view-modal").classList.add("hidden");
+      }
+
+      function editFromView() {
+        closeViewModal();
+        editMobileItem(currentViewItem.Eq_ID); // ส่งไปหน้าแก้ไขต่อ
+      }
+
+      // ==========================================
+      // 🖼️ ระบบปัดรูปภาพเต็มจอ (Swipeable Lightbox)
+      // ==========================================
+      let lightboxUrls = [];
+
+      function openLightbox(startIndex) {
+        if (!currentViewItem) return;
+        const rawUrl = currentViewItem.Image_URL || "";
+        lightboxUrls = rawUrl.split(",").filter((u) => u.trim() !== "");
+        if (lightboxUrls.length === 0) return;
+
+        const container = document.getElementById("lightbox-container");
+        const dotsContainer = document.getElementById("lightbox-dots");
+        container.innerHTML = "";
+        dotsContainer.innerHTML = "";
+
+        // วาดรูปภาพและจุดไข่ปลา
+        lightboxUrls.forEach((url, i) => {
+          let fullUrl = url.includes("drive.google.com/uc?id=")
+            ? `https://drive.google.com/thumbnail?id=${url.split("id=")[1].split("&")[0]}&sz=w1000`
+            : url;
+          // วางแต่ละรูปลงในกรอบที่บังคับให้พอดี 1 หน้าจอ (w-screen) และให้กระโดดเข้าล็อกตรงกลาง (snap-center)
+          container.innerHTML += `
+                    <div class="w-screen h-screen flex-shrink-0 flex items-center justify-center snap-center p-2">
+                        <img src="${fullUrl}" class="max-w-full max-h-[85vh] object-contain rounded-lg">
+                    </div>
+                `;
+          dotsContainer.innerHTML += `<div id="dot-${i}" class="w-2 h-2 rounded-full ${i === startIndex ? "bg-white" : "bg-white/40"} transition-all"></div>`;
+        });
+
+        document.getElementById("mobile-lightbox").classList.remove("hidden");
+
+        // สั่งให้เลื่อนไปตำแหน่งรูปที่กดทันที
+        setTimeout(() => {
+          container.scrollTo({
+            left: startIndex * window.innerWidth,
+            behavior: "instant",
+          });
+        }, 10);
+      }
+
+      function closeLightbox() {
+        document.getElementById("mobile-lightbox").classList.add("hidden");
+      }
+
+      // ฟังก์ชันอัปเดตจุดไข่ปลา เมื่อใช้นิ้วปัดเลื่อนรูปภาพ
+      function updateLightboxDots() {
+        const container = document.getElementById("lightbox-container");
+        // คำนวณหาว่าตอนนี้เลื่อนมาอยู่รูปที่เท่าไหร่ (หารด้วยความกว้างหน้าจอ)
+        const index = Math.round(container.scrollLeft / window.innerWidth);
+        lightboxUrls.forEach((_, i) => {
+          const dot = document.getElementById(`dot-${i}`);
+          if (dot) {
+            dot.className = `w-2 h-2 rounded-full transition-all duration-300 ${i === index ? "bg-white scale-125" : "bg-white/40"}`;
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
