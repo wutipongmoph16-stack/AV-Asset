@@ -274,6 +274,7 @@
                 accept="image/*"
                 multiple
                 class="hidden"
+                onchange="handleImageSelection(event)"
               />
             </label>
           </div>
@@ -408,14 +409,19 @@
       let globalEquipmentList = [];
       let filteredList = [];
       let currentEditId = null;
+
+      // ตัวแปรสำหรับจัดการรูปภาพ
       let existingImagesToKeep = [];
       let deletedImageUrls = [];
+      let newImageFiles = []; // 💡 ตัวแปรใหม่: เก็บรูปที่เพิ่งถ่ายเตรียมพรีวิว
 
       window.onload = function () {
         loadDataFromAPI();
       };
 
-      // 🟢 1. โหลดข้อมูลผ่าน Fetch API (GET)
+      // ==========================================
+      // 🟢 1. โหลดข้อมูล (API GET)
+      // ==========================================
       async function loadDataFromAPI() {
         Swal.fire({
           title: "กำลังโหลดข้อมูล...",
@@ -425,7 +431,6 @@
           },
         });
         try {
-          // ยิง API แบบ GET โดยระบุ parameter action=getEquipmentData
           const response = await fetch(`${API_URL}?action=getEquipment`);
           const data = await response.json();
 
@@ -435,19 +440,18 @@
             filteredList = [...globalEquipmentList];
             renderMobileCards();
           } else {
-            Swal.fire("ข้อผิดพลาด", "ไม่สามารถโหลดข้อมูลได้", "error");
+            Swal.fire(
+              "ข้อผิดพลาด",
+              "ไม่สามารถโหลดข้อมูลได้: " + data.message,
+              "error",
+            );
           }
         } catch (error) {
-          Swal.fire(
-            "ข้อผิดพลาด",
-            "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (API Error)",
-            "error",
-          );
+          Swal.fire("ข้อผิดพลาด", "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้", "error");
           console.error(error);
         }
       }
 
-      // 🟢 2. วาดการ์ด
       function renderMobileCards() {
         const container = document.getElementById("crud-card-container");
         document.getElementById("total-items").innerText =
@@ -467,11 +471,11 @@
             thumbUrl = `https://drive.google.com/thumbnail?id=${thumbUrl.split("id=")[1].split("&")[0]}&sz=w200`;
           }
 
-          let statusBadge = `<span class="inline-block mt-1 px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] rounded-full font-bold">${item.Status}</span>`;
+          let statusBadge = `<span class="inline-block mt-2 px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full font-bold">${item.Status}</span>`;
           if (item.Status === "ว่าง")
-            statusBadge = `<span class="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 text-[10px] rounded-full font-bold">✅ ว่าง</span>`;
+            statusBadge = `<span class="inline-block mt-2 px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-bold">✅ ว่าง</span>`;
           if (item.Status === "ถูกยืม")
-            statusBadge = `<span class="inline-block mt-1 px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] rounded-full font-bold">🛒 ถูกยืม</span>`;
+            statusBadge = `<span class="inline-block mt-2 px-3 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full font-bold">🛒 ถูกยืม</span>`;
 
           html += `
                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex gap-4 mb-4 relative active:bg-gray-50 transition" onclick="viewMobileItem('${item.Eq_ID}')">
@@ -482,15 +486,11 @@
                         <p class="text-xs text-gray-500 truncate mt-1">📍 ${item.Location || "ไม่ระบุ"}</p>
                         <div>${statusBadge}</div>
                     </div>
-                    <div class="flex items-center justify-center pr-1 shrink-0 text-gray-300 text-2xl">
-                        &#10095;
-                    </div>
                 </div>`;
         });
         container.innerHTML = html;
       }
 
-      // 🟢 3. ค้นหา
       function handleSearch() {
         const query = document
           .getElementById("searchInput")
@@ -504,6 +504,9 @@
         renderMobileCards();
       }
 
+      // ==========================================
+      // 🟢 2. จัดการฟอร์ม และ พรีวิวรูปภาพ
+      // ==========================================
       function openMobileModal() {
         currentEditId = null;
         document.getElementById("modal-title").innerText =
@@ -512,6 +515,7 @@
         document.getElementById("eqId").value = "";
         existingImagesToKeep = [];
         deletedImageUrls = [];
+        newImageFiles = []; // เคลียร์รูป
         renderEditGallery();
         document.getElementById("mobile-crud-modal").classList.remove("hidden");
       }
@@ -557,6 +561,7 @@
             .split(",")
             .filter((u) => u.trim() !== "");
           deletedImageUrls = [];
+          newImageFiles = []; // เคลียร์รูปใหม่
           renderEditGallery();
         }
         document.getElementById("mobile-crud-modal").classList.remove("hidden");
@@ -566,22 +571,59 @@
         document.getElementById("mobile-crud-modal").classList.add("hidden");
       }
 
+      // 💡 ดักจับการถ่ายรูป/เลือกรูป เพื่อแสดงพรีวิว
+      function handleImageSelection(e) {
+        const files = Array.from(e.target.files);
+        const slotsAvailable =
+          5 - (existingImagesToKeep.length + newImageFiles.length);
+
+        if (slotsAvailable <= 0) {
+          Swal.fire("เต็มแล้ว", "อัปโหลดได้สูงสุด 5 ภาพ", "warning");
+          return;
+        }
+
+        const filesToAdd = files.slice(0, slotsAvailable);
+        filesToAdd.forEach((file) => {
+          const reader = new FileReader();
+          reader.onload = function (evt) {
+            newImageFiles.push({ file: file, previewUrl: evt.target.result });
+            renderEditGallery(); // สั่งวาดแกลเลอรีใหม่ทันที
+          };
+          reader.readAsDataURL(file);
+        });
+        e.target.value = ""; // เคลียร์ค่า เผื่อเลือกไฟล์เดิมซ้ำ
+      }
+
+      // วาดแกลเลอรี (รวมรูปเก่า และ พรีวิวรูปใหม่)
       function renderEditGallery() {
         const gallery = document.getElementById("edit-image-gallery");
         gallery.innerHTML = "";
+
+        // 1. วาดรูปเดิมที่มีอยู่แล้ว
         existingImagesToKeep.forEach((url, index) => {
           let displayUrl = url.includes("drive.google.com/uc?id=")
             ? `https://drive.google.com/thumbnail?id=${url.split("id=")[1].split("&")[0]}&sz=w150`
             : url;
-          gallery.innerHTML += `<div class="relative inline-block shrink-0"><img src="${displayUrl}" class="w-16 h-16 object-cover rounded-lg border shadow-sm"><div onclick="removeExistingImage(${index})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center cursor-pointer text-[10px] font-bold">X</div></div>`;
+          gallery.innerHTML += `<div class="relative inline-block shrink-0"><img src="${displayUrl}" class="w-20 h-20 object-cover rounded-lg border shadow-sm"><div onclick="removeExistingImage(${index})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center cursor-pointer text-[12px] font-bold">X</div></div>`;
+        });
+
+        // 2. วาดรูปพรีวิวที่เพิ่งถ่ายใหม่ (ใส่กรอบสีฟ้าให้รู้ว่าเพิ่งถ่าย)
+        newImageFiles.forEach((imgObj, index) => {
+          gallery.innerHTML += `<div class="relative inline-block shrink-0"><img src="${imgObj.previewUrl}" class="w-20 h-20 object-cover rounded-lg border-2 border-blue-400 shadow-md"><div onclick="removeNewImage(${index})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center cursor-pointer text-[12px] font-bold">X</div></div>`;
         });
       }
       function removeExistingImage(index) {
         deletedImageUrls.push(existingImagesToKeep.splice(index, 1)[0]);
         renderEditGallery();
       }
+      function removeNewImage(index) {
+        newImageFiles.splice(index, 1);
+        renderEditGallery();
+      }
 
-      // 🟢 4. บันทึกข้อมูลผ่าน Fetch API (POST)
+      // ==========================================
+      // 🟢 3. บันทึกข้อมูลผ่าน API (POST แบบแก้ CORS)
+      // ==========================================
       async function saveEquipment() {
         const eqName = document.getElementById("eqName").value;
         if (!eqName) {
@@ -590,7 +632,7 @@
         }
 
         Swal.fire({
-          title: "กำลังบันทึก...",
+          title: "กำลังประมวลผลรูปภาพ...",
           allowOutsideClick: false,
           didOpen: () => {
             Swal.showLoading();
@@ -612,60 +654,65 @@
           images: [],
         };
 
-        const fileInput = document.getElementById("eqImage");
-        if (fileInput && fileInput.files.length > 0) {
-          const filesToUpload = Array.from(fileInput.files).slice(
-            0,
-            5 - existingImagesToKeep.length,
-          );
+        // แปลงไฟล์ภาพพรีวิวเป็น Base64
+        if (newImageFiles.length > 0) {
           payloadData.images = await Promise.all(
-            filesToUpload.map(
-              (file) =>
+            newImageFiles.map(
+              (imgObj) =>
                 new Promise((resolve) => {
-                  const reader = new FileReader();
-                  reader.onload = (e) => {
-                    const img = new Image();
-                    img.onload = () => {
-                      const canvas = document.createElement("canvas");
-                      let w = img.width,
-                        h = img.height;
-                      if (w > h) {
-                        if (w > 600) {
-                          h *= 600 / w;
-                          w = 600;
-                        }
-                      } else {
-                        if (h > 600) {
-                          w *= 600 / h;
-                          h = 600;
-                        }
+                  const img = new Image();
+                  img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    let w = img.width,
+                      h = img.height;
+                    if (w > h) {
+                      if (w > 600) {
+                        h *= 600 / w;
+                        w = 600;
                       }
-                      canvas.width = w;
-                      canvas.height = h;
-                      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-                      resolve({
-                        base64Image: canvas
-                          .toDataURL("image/jpeg", 0.8)
-                          .split(",")[1],
-                        mimeType: "image/jpeg",
-                      });
-                    };
-                    img.src = e.target.result;
+                    } else {
+                      if (h > 600) {
+                        w *= 600 / h;
+                        h = 600;
+                      }
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+                    resolve({
+                      base64Image: canvas
+                        .toDataURL("image/jpeg", 0.8)
+                        .split(",")[1],
+                      mimeType: "image/jpeg",
+                    });
                   };
-                  reader.readAsDataURL(file);
+                  img.src = imgObj.previewUrl; // ใช้ base64 ที่พรีวิวไว้แล้วได้เลย
                 }),
             ),
           );
         }
 
+        Swal.fire({
+          title: "กำลังบันทึกลงฐานข้อมูล...",
+          text: "อาจใช้เวลาสักครู่หากมีรูปภาพ",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
         try {
-          // ส่งข้อมูลไปที่หลังบ้านแบบ POST ผ่าน API
+          // 💡 แก้ไข API Fetch: เพิ่ม redirect และเปลี่ยน Content-Type ทะลวงบล็อก
           const response = await fetch(API_URL, {
             method: "POST",
+            redirect: "follow", // จำเป็นมากสำหรับ Google Apps Script
+            headers: {
+              "Content-Type": "text/plain;charset=utf-8", // ทะลวงกำแพง CORS Preflight
+            },
             body: JSON.stringify({
               action: "saveEquipment",
               payload: payloadData,
-            }), // ห่อข้อมูลส่งไป
+            }),
           });
 
           const resp = await response.json();
@@ -678,22 +725,22 @@
               timer: 1500,
             });
             closeMobileModal();
-            loadDataFromAPI(); // โหลดข้อมูลใหม่เพื่ออัปเดตหน้าจอ
+            loadDataFromAPI();
           } else {
-            Swal.fire("ข้อผิดพลาด", "บันทึกไม่สำเร็จ", "error");
+            Swal.fire(
+              "ข้อผิดพลาด",
+              "บันทึกไม่สำเร็จ: " + (resp.message || "ไม่ทราบสาเหตุ"),
+              "error",
+            );
           }
         } catch (error) {
-          Swal.fire(
-            "ข้อผิดพลาด",
-            "ส่งข้อมูลไม่สำเร็จ (CORS/Network Error)",
-            "error",
-          );
+          Swal.fire("ข้อผิดพลาด", "ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่", "error");
           console.error(error);
         }
       }
 
       // ==========================================
-      // 👁️ ระบบดูรายละเอียด (View Details)
+      // 👁️ 4. ระบบดูรายละเอียด และ Lightbox (ของเดิม)
       // ==========================================
       let currentViewItem = null;
 
@@ -701,7 +748,6 @@
         currentViewItem = globalEquipmentList.find((x) => x.Eq_ID == id);
         if (!currentViewItem) return;
 
-        // นำข้อมูลไปใส่ในหน้าต่าง
         document.getElementById("v-name").innerText =
           currentViewItem.Eq_Name || "-";
         document.getElementById("v-id").innerText =
@@ -718,7 +764,6 @@
         document.getElementById("v-location").innerText =
           currentViewItem.Location || "-";
 
-        // จัดการป้ายสถานะ
         let statusHtml = `<span class="px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full font-bold">${currentViewItem.Status}</span>`;
         if (currentViewItem.Status === "ว่าง")
           statusHtml = `<span class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-bold">✅ ว่าง (พร้อมใช้)</span>`;
@@ -731,7 +776,6 @@
           statusHtml = `<span class="px-3 py-1 bg-red-100 text-red-700 text-xs rounded-full font-bold">🔧 ${currentViewItem.Status}</span>`;
         document.getElementById("v-status-badge").innerHTML = statusHtml;
 
-        // จัดการรูปภาพขนาดย่อ (Thumbnails)
         const rawUrl = currentViewItem.Image_URL || "";
         const urls = rawUrl.split(",").filter((u) => u.trim() !== "");
         const galDiv = document.getElementById("view-gallery-thumbs");
@@ -754,17 +798,12 @@
       function closeViewModal() {
         document.getElementById("mobile-view-modal").classList.add("hidden");
       }
-
       function editFromView() {
         closeViewModal();
-        editMobileItem(currentViewItem.Eq_ID); // ส่งไปหน้าแก้ไขต่อ
+        editMobileItem(currentViewItem.Eq_ID);
       }
 
-      // ==========================================
-      // 🖼️ ระบบปัดรูปภาพเต็มจอ (Swipeable Lightbox)
-      // ==========================================
       let lightboxUrls = [];
-
       function openLightbox(startIndex) {
         if (!currentViewItem) return;
         const rawUrl = currentViewItem.Image_URL || "";
@@ -776,23 +815,15 @@
         container.innerHTML = "";
         dotsContainer.innerHTML = "";
 
-        // วาดรูปภาพและจุดไข่ปลา
         lightboxUrls.forEach((url, i) => {
           let fullUrl = url.includes("drive.google.com/uc?id=")
             ? `https://drive.google.com/thumbnail?id=${url.split("id=")[1].split("&")[0]}&sz=w1000`
             : url;
-          // วางแต่ละรูปลงในกรอบที่บังคับให้พอดี 1 หน้าจอ (w-screen) และให้กระโดดเข้าล็อกตรงกลาง (snap-center)
-          container.innerHTML += `
-                    <div class="w-screen h-screen flex-shrink-0 flex items-center justify-center snap-center p-2">
-                        <img src="${fullUrl}" class="max-w-full max-h-[85vh] object-contain rounded-lg">
-                    </div>
-                `;
+          container.innerHTML += `<div class="w-screen h-screen flex-shrink-0 flex items-center justify-center snap-center p-2"><img src="${fullUrl}" class="max-w-full max-h-[85vh] object-contain rounded-lg"></div>`;
           dotsContainer.innerHTML += `<div id="dot-${i}" class="w-2 h-2 rounded-full ${i === startIndex ? "bg-white" : "bg-white/40"} transition-all"></div>`;
         });
 
         document.getElementById("mobile-lightbox").classList.remove("hidden");
-
-        // สั่งให้เลื่อนไปตำแหน่งรูปที่กดทันที
         setTimeout(() => {
           container.scrollTo({
             left: startIndex * window.innerWidth,
@@ -805,16 +836,13 @@
         document.getElementById("mobile-lightbox").classList.add("hidden");
       }
 
-      // ฟังก์ชันอัปเดตจุดไข่ปลา เมื่อใช้นิ้วปัดเลื่อนรูปภาพ
       function updateLightboxDots() {
         const container = document.getElementById("lightbox-container");
-        // คำนวณหาว่าตอนนี้เลื่อนมาอยู่รูปที่เท่าไหร่ (หารด้วยความกว้างหน้าจอ)
         const index = Math.round(container.scrollLeft / window.innerWidth);
         lightboxUrls.forEach((_, i) => {
           const dot = document.getElementById(`dot-${i}`);
-          if (dot) {
+          if (dot)
             dot.className = `w-2 h-2 rounded-full transition-all duration-300 ${i === index ? "bg-white scale-125" : "bg-white/40"}`;
-          }
         });
       }
     </script>
