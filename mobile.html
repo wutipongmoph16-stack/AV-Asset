@@ -651,6 +651,7 @@
               "error",
             );
           }
+          checkDeepLink();
         } catch (error) {
           Swal.fire("ข้อผิดพลาด", "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้", "error");
           console.error(error);
@@ -1374,7 +1375,7 @@
       }
 
       // ประมวลผลรหัสที่สแกนได้
-      function processScannedQR(scannedId) {
+      function processScannedQR(scannedText) {
         Swal.fire({
           title: "กำลังค้นหา...",
           allowOutsideClick: false,
@@ -1384,22 +1385,32 @@
         });
 
         setTimeout(() => {
-          // ค้นหาอุปกรณ์จากรหัสใน globalEquipmentList
+          let targetId = scannedText;
+
+          // 💡 ถ้าสิ่งที่สแกนมาเป็น URLยาวๆ ให้เราแงะเอาเฉพาะคำที่อยู่หลัง ?id= ออกมา
+          try {
+            if (scannedText.includes("?id=")) {
+              const url = new URL(scannedText);
+              targetId = url.searchParams.get("id") || scannedText;
+            }
+          } catch (e) {}
+
+          // ค้นหาอุปกรณ์จากรหัส
           const foundItem = globalEquipmentList.find(
-            (x) => x.Eq_ID === scannedId,
+            (x) => x.Eq_ID === targetId,
           );
 
           if (foundItem) {
             Swal.close();
-            viewMobileItem(foundItem.Eq_ID); // 💡 สั่งเปิดหน้าต่างดูรายละเอียดทันที!
+            viewMobileItem(foundItem.Eq_ID);
           } else {
             Swal.fire(
               "ไม่พบข้อมูล",
-              `ไม่มีอุปกรณ์รหัส "${scannedId}" ในระบบ`,
+              `ไม่มีอุปกรณ์รหัส "${targetId}" ในระบบ`,
               "warning",
             );
           }
-        }, 500); // หน่วงเวลาให้ดูสมูท
+        }, 500);
       }
 
       function playSound() {
@@ -1413,6 +1424,39 @@
           osc.start();
           osc.stop(ctx.currentTime + 0.1);
         } catch (e) {}
+      }
+
+      // ==========================================
+      // 🔗 ระบบเปิดหน้าต่างอัตโนมัติจาก URL (Deep Link)
+      // ==========================================
+      function checkDeepLink() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const scanId = urlParams.get("id"); // ดึงค่าจาก ?id=...
+
+        if (scanId) {
+          // รอแป๊บนึงให้หน้าตารางเรนเดอร์เสร็จก่อน แล้วค่อยเปิด Modal
+          setTimeout(() => {
+            const foundItem = globalEquipmentList.find(
+              (x) => x.Eq_ID === scanId,
+            );
+            if (foundItem) {
+              viewMobileItem(scanId);
+
+              // ล้าง URL ให้สะอาด เพื่อป้องกันการรีเฟรชแล้วเด้งหน้าต่างซ้ำๆ
+              window.history.replaceState(
+                {},
+                document.title,
+                window.location.pathname,
+              );
+            } else {
+              Swal.fire(
+                "ไม่พบข้อมูล",
+                `สแกนพบรหัส "${scanId}" แต่ไม่มีในฐานข้อมูล`,
+                "warning",
+              );
+            }
+          }, 500);
+        }
       }
     </script>
   </body>
