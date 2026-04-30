@@ -362,7 +362,7 @@
         if (DEV_MODE) {
           setupUserProfile({
             userId: "U_dev_admin_001",
-            displayName: "คุณวุฒิพงษ์ (Dev)",
+            displayName: "คุณวุฒิพงษ์ (Admin)",
             pictureUrl: "",
           });
         } else {
@@ -400,9 +400,14 @@
           const data = await res.json();
 
           let isReg = false;
+
+          // 💡 แก้ไขข้อ 2: เจาะข้อมูลให้ถูกโครงสร้าง (รองรับ responseJSON ของ GAS)
           if (data.status === "success" && data.data) {
             isReg = data.data.isRegistered;
             currentUserRole = data.data.role || "User";
+          } else if (data.isRegistered !== undefined) {
+            isReg = data.isRegistered;
+            currentUserRole = data.role || "User";
           }
 
           if (
@@ -430,6 +435,7 @@
             });
           }
         } catch (e) {
+          console.error(e);
           Swal.fire("Error", "ไม่สามารถติดต่อฐานข้อมูลได้", "error");
         }
       }
