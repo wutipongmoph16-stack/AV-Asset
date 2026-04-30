@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Staff AV Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script
+      src="https://unpkg.com/html5-qrcode"
+      type="text/javascript"
+    ></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap");
+      body {
+        font-family: "Sarabun", sans-serif;
+        background-color: #f3f4f6;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      .animate-slide-up {
+        animation: slideUp 0.2s ease-out forwards;
+      }
+    </style>
+  </head>
+  <body class="flex flex-col h-[100dvh] overflow-hidden bg-gray-100">
+    <!-- 🔒 หน้า Login -->
+    <div
+      id="login-page"
+      class="absolute inset-0 flex items-center justify-center bg-slate-900 z-[100]"
+    >
+      <div
+        class="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-sm w-full mx-4 animate-slide-up"
+      >
+        <div
+          class="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-3xl shadow-lg"
+        >
+          🛠️
+        </div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Staff Portal</h2>
+        <p class="text-gray-500 mb-6 text-sm">
+          ระบบจัดการคลังอุปกรณ์โสตฯ<br />สำหรับเจ้าหน้าที่ สสจ.ลพบุรี
+        </p>
+        <button
+          onclick="liffLogin()"
+          class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl shadow-md transition active:scale-95 text-lg"
+        >
+          💬 เข้าสู่ระบบด้วย LINE
+        </button>
+      </div>
+    </div>
+
+    <!-- 📱 Main App (Staff Mode) -->
+    <div id="main-app" class="hidden flex-col h-full w-full">
+      <header
+        class="bg-slate-800 text-white p-4 shadow-md flex justify-between items-center z-30 shrink-0"
+      >
+        <div class="flex items-center gap-3">
+          <img
+            id="user-profile-img"
+            src=""
+            class="w-10 h-10 rounded-full border-2 border-slate-600 object-cover"
+          />
+          <div>
+            <h1 class="font-bold text-lg leading-none" id="user-display-name">
+              กำลังโหลด...
+            </h1>
+            <span class="text-xs text-green-400 font-bold" id="user-role-badge"
+              >Staff Mode</span
+            >
+          </div>
+        </div>
+        <button
+          onclick="liffLogout()"
+          class="text-xs bg-slate-700 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg transition active:scale-95"
+        >
+          ออกระบบ
+        </button>
+      </header>
+
+      <main
+        class="flex-1 overflow-y-auto pb-24 relative bg-gray-100"
+        id="main-content"
+      >
+        <div
+          class="sticky top-0 bg-gray-100 p-4 z-20 shadow-sm border-b border-gray-200"
+        >
+          <div class="relative">
+            <span class="absolute left-4 top-3.5 text-gray-400 text-lg"
+              >🔍</span
+            >
+            <input
+              type="text"
+              id="searchInput"
+              oninput="handleSearch()"
+              placeholder="ค้นหาเพื่อแก้ไขข้อมูล..."
+              class="w-full bg-white border border-gray-300 rounded-full py-3.5 pl-12 pr-4 text-base focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+            />
+          </div>
+          <p class="text-sm text-gray-500 font-bold mt-3 px-2" id="total-items">
+            กำลังเชื่อมต่อ API...
+          </p>
+        </div>
+
+        <div class="p-4" id="crud-card-container"></div>
+      </main>
+
+      <!-- ปุ่มเพิ่มอุปกรณ์ (FAB) -->
+      <button
+        onclick="openMobileModal()"
+        class="fixed bottom-24 right-5 w-16 h-16 bg-blue-600 text-white rounded-full shadow-xl flex justify-center items-center text-4xl font-bold hover:bg-blue-700 active:scale-95 transition z-30 pb-1 border-2 border-white"
+      >
+        +
+      </button>
+
+      <!-- Bottom Nav -->
+      <nav
+        class="bg-white border-t border-gray-200 flex justify-between items-center px-8 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-4px_15px_rgba(0,0,0,0.05)] z-40 shrink-0 relative"
+      >
+        <button
+          class="flex flex-col items-center text-blue-600 w-20 active:scale-95 transition"
+        >
+          <span class="text-2xl mb-1">📦</span
+          ><span class="text-[11px] font-bold">จัดการคลัง</span>
+        </button>
+        <button
+          onclick="openScanner()"
+          class="flex flex-col items-center text-gray-400 hover:text-blue-500 w-20 transition active:scale-95"
+        >
+          <span class="text-2xl mb-1">📷</span
+          ><span class="text-[11px] font-bold">สแกนแก้ไข</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- 📝 Modal: ฟอร์มเพิ่ม/แก้ไขข้อมูล -->
+    <div
+      id="mobile-crud-modal"
+      class="hidden fixed inset-0 bg-gray-50 z-50 flex flex-col animate-slide-up"
+    >
+      <div
+        class="bg-blue-700 text-white p-3 flex justify-between items-center shadow-md shrink-0"
+      >
+        <button
+          onclick="closeMobileModal()"
+          class="text-white font-bold text-sm px-3 py-2 bg-blue-800 rounded active:scale-95"
+        >
+          ◀ ยกเลิก
+        </button>
+        <h2 id="modal-title" class="text-sm font-bold truncate px-2">
+          📦 เพิ่มอุปกรณ์ใหม่
+        </h2>
+        <button
+          id="btn-save-main"
+          onclick="saveEquipment()"
+          class="text-white font-bold text-sm px-3 py-2 bg-green-500 rounded shadow active:scale-95"
+        >
+          💾 บันทึก
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4">
+        <form id="crud-form" class="space-y-4 pb-20">
+          <input type="hidden" id="eqId" />
+
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <h4 class="text-blue-600 font-bold text-xs mb-3 uppercase">
+              📝 ข้อมูลทั่วไป
+            </h4>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1"
+                  >ชื่ออุปกรณ์ *</label
+                ><input
+                  type="text"
+                  id="eqName"
+                  class="w-full border bg-gray-50 p-2 rounded text-sm outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+              <div class="flex gap-3">
+                <div class="flex-1">
+                  <label class="block text-xs font-bold text-gray-500 mb-1"
+                    >ยี่ห้อ</label
+                  ><input
+                    type="text"
+                    id="eqBrand"
+                    class="w-full border bg-gray-50 p-2 rounded text-sm outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
+                <div class="flex-1">
+                  <label class="block text-xs font-bold text-gray-500 mb-1"
+                    >รุ่น</label
+                  ><input
+                    type="text"
+                    id="eqModel"
+                    class="w-full border bg-gray-50 p-2 rounded text-sm outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1"
+                  >S/N</label
+                ><input
+                  type="text"
+                  id="eqSN"
+                  class="w-full border bg-gray-50 p-2 rounded text-sm outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1"
+                  >เลขครุภัณฑ์</label
+                ><input
+                  type="text"
+                  id="eqAssetId"
+                  class="w-full border bg-gray-50 p-2 rounded text-sm outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <h4 class="text-yellow-600 font-bold text-xs mb-3 uppercase">
+              🏷️ หมวดหมู่ & สถานะ
+            </h4>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-bold text-gray-500 mb-1"
+                  >หมวดหมู่</label
+                >
+                <select
+                  id="eqCategory"
+                  class="w-full border bg-gray-50 p-2 rounded text-sm outline-none focus:ring-2 focus:ring-yellow-400"
+                ></select>
+              </div>
+              <div class="flex gap-3">
+                <div class="flex-1">
+                  <label class="block text-xs font-bold text-gray-500 mb-1"
+                    >สถานะ</label
+                  >
+                  <select
+                    id="eqStatus"
+                    class="w-full border bg-gray-50 p-2 rounded text-sm font-bold text-blue-600 outline-none focus:ring-2 focus:ring-yellow-400"
+                  >
+                    <option value="ว่าง">✅ ว่าง</option>
+                    <option value="ถูกยืม">🛒 ถูกยืม</option>
+                    <option value="ส่งซ่อม">🔧 ส่งซ่อม</option>
+                    <option value="ชำรุด">❌ ชำรุด</option>
+                  </select>
+                </div>
+                <div class="flex-1">
+                  <label class="block text-xs font-bold text-gray-500 mb-1"
+                    >สถานที่เก็บ</label
+                  >
+                  <select
+                    id="eqLocation"
+                    class="w-full border bg-gray-50 p-2 rounded text-sm outline-none focus:ring-2 focus:ring-yellow-400"
+                  ></select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hidden"
+            id="purchase-section"
+          >
+            <h4 class="text-purple-600 font-bold text-xs mb-3 uppercase">
+              💰 จัดซื้อ (เฉพาะแอดมินเห็น)
+            </h4>
+            <!-- ช่องราคา ซ่อนไว้สำหรับ Staff ยืดหยุ่นได้ -->
+          </div>
+
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <h4 class="text-green-600 font-bold text-xs mb-3 uppercase">
+              🖼️ ถ่ายรูป / อัปโหลด (สูงสุด 5 รูป)
+            </h4>
+            <div
+              id="edit-image-gallery"
+              class="flex overflow-x-auto gap-2 mb-3 pb-2 hide-scrollbar"
+            ></div>
+            <label
+              class="flex justify-center items-center w-full h-16 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 text-blue-600 font-bold text-sm cursor-pointer active:bg-blue-100 transition"
+            >
+              + เลือกรูปภาพ
+              <input
+                type="file"
+                id="eqImage"
+                accept="image/*"
+                multiple
+                class="hidden"
+                onchange="handleImageSelection(event)"
+              />
+            </label>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Scanner -->
+    <div
+      id="scanner-modal"
+      class="hidden fixed inset-0 bg-black z-[100] flex flex-col"
+    >
+      <div
+        class="bg-slate-900 text-white p-4 flex justify-between items-center shadow-md shrink-0"
+      >
+        <button
+          onclick="closeScanner()"
+          class="text-white font-bold text-sm px-4 py-2 bg-slate-700 rounded-lg"
+        >
+          ◀ ปิดกล้อง
+        </button>
+        <h2 class="text-base font-bold pr-6">📷 สแกนแก้ไขข้อมูล</h2>
+      </div>
+      <div
+        class="flex-1 bg-black flex items-center justify-center relative px-4"
+      >
+        <div
+          id="reader"
+          class="w-full max-w-sm rounded-2xl overflow-hidden shadow-[0_0_0_4000px_rgba(0,0,0,0.8)] border-4 border-blue-500 relative z-10"
+        ></div>
+      </div>
+    </div>
+
+    <script>
+      // 🛑 ตั้งค่า LIFF ID และ API URL
+      const LIFF_ID = "2009938016-JZpuP1dr"; //ทีมงานโสตฯ สสจ.ลพบุรี
+      const API_URL =
+        "https://script.google.com/macros/s/AKfycbyRiTxTt0lgo0bAU7DIq7QB5jWx9Zx1EV_8Zs7mW1LphcgJT2WbK2LkrEV792PPTH5wSg/exec";
+      const DEV_MODE = false; // เปลี่ยนเป็น false เมื่อใช้จริงใน LINE
+
+      let globalEquipmentList = [];
+      let filteredList = [];
+      let currentEditId = null;
+      let currentUserRole = "User";
+
+      let existingImagesToKeep = [];
+      let deletedImageUrls = [];
+      let newImageFiles = [];
+
+      window.onload = function () {
+        if (DEV_MODE) {
+          setupUserProfile({
+            userId: "U_dev_admin",
+            displayName: "คุณวุฒิพงษ์ (Dev)",
+            pictureUrl: "",
+          });
+        } else {
+          liff.init({ liffId: LIFF_ID }).then(() => {
+            if (liff.isLoggedIn()) {
+              liff.getProfile().then((profile) => setupUserProfile(profile));
+            }
+          });
+        }
+      };
+
+      function liffLogin() {
+        DEV_MODE ? location.reload() : liff.login();
+      }
+      function liffLogout() {
+        if (!DEV_MODE) liff.logout();
+        location.reload();
+      }
+
+      // ==========================================
+      // 1. ตรวจสอบสิทธิ์ (Staff & Admin Only)
+      // ==========================================
+      async function setupUserProfile(profile) {
+        Swal.fire({
+          title: "ตรวจสอบสิทธิ์...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+        try {
+          const res = await fetch(
+            `${API_URL}?action=checkUserRegistration&userId=${profile.userId}`,
+          );
+          const data = await res.json();
+
+          let isReg = false;
+          if (data.status === "success" && data.data) {
+            isReg = data.data.isRegistered;
+            currentUserRole = data.data.role || "User";
+          }
+
+          if (
+            isReg &&
+            (currentUserRole === "Admin" || currentUserRole === "Staff")
+          ) {
+            document.getElementById("login-page").style.display = "none";
+            document.getElementById("main-app").classList.remove("hidden");
+            document.getElementById("main-app").classList.add("flex");
+            document.getElementById("user-display-name").innerText =
+              profile.displayName;
+            if (profile.pictureUrl)
+              document.getElementById("user-profile-img").src =
+                profile.pictureUrl;
+            document.getElementById("user-role-badge").innerText =
+              currentUserRole === "Admin" ? "⭐ Admin Mode" : "🛠️ Staff Mode";
+
+            loadDataFromAPI();
+          } else {
+            Swal.fire({
+              icon: "error",
+              title: "ปฏิเสธการเข้าถึง",
+              text: "ระบบนี้สงวนสิทธิ์เฉพาะเจ้าหน้าที่โสตฯ เท่านั้นครับ",
+              confirmButtonText: "ปิด",
+            });
+          }
+        } catch (e) {
+          Swal.fire("Error", "ไม่สามารถติดต่อฐานข้อมูลได้", "error");
+        }
+      }
+
+      // ==========================================
+      // 2. โหลดและแสดงข้อมูล
+      // ==========================================
+      async function loadDataFromAPI() {
+        Swal.fire({
+          title: "โหลดคลังอุปกรณ์...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+        try {
+          const [eqRes, catRes, locRes] = await Promise.all([
+            fetch(`${API_URL}?action=getEquipment`),
+            fetch(`${API_URL}?action=getCategories`).catch(() => null),
+            fetch(`${API_URL}?action=getLocations`).catch(() => null),
+          ]);
+
+          const eqData = await eqRes.json();
+          const buildOption = (item) => {
+            if (typeof item === "object" && item !== null) {
+              let vals = Array.isArray(item) ? item : Object.values(item);
+              let id = vals[0] || "";
+              let name = vals.length > 1 ? vals[1] : id;
+              return `<option value="${name}">${name}</option>`;
+            }
+            return `<option value="${item}">${item}</option>`;
+          };
+
+          if (catRes) {
+            const cData = await catRes.json();
+            if (cData.status === "success")
+              document.getElementById("eqCategory").innerHTML = cData.data
+                .map(buildOption)
+                .join("");
+          }
+          if (locRes) {
+            const lData = await locRes.json();
+            if (lData.status === "success")
+              document.getElementById("eqLocation").innerHTML = lData.data
+                .map(buildOption)
+                .join("");
+          }
+
+          if (eqData.status === "success") {
+            globalEquipmentList = eqData.data || [];
+            filteredList = [...globalEquipmentList];
+            renderMobileCards();
+            Swal.close();
+          }
+        } catch (error) {
+          Swal.fire("ข้อผิดพลาด", "เชื่อมต่อไม่ได้", "error");
+        }
+      }
+
+      function renderMobileCards() {
+        const container = document.getElementById("crud-card-container");
+        document.getElementById("total-items").innerText =
+          `พบคลังอุปกรณ์ ${filteredList.length} รายการ`;
+        if (filteredList.length === 0) {
+          container.innerHTML = `<div class="text-center py-10 text-gray-400">ไม่พบข้อมูล</div>`;
+          return;
+        }
+
+        let html = "";
+        filteredList.slice(0, 50).forEach((item) => {
+          // แสดงแค่ 50 รายการแรกเพื่อความลื่นไหลในมือถือ
+          const rawUrl = item.Image_URL || "";
+          let thumbUrl =
+            rawUrl.split(",")[0].trim() ||
+            "https://via.placeholder.com/150?text=No+Img";
+          if (thumbUrl.includes("drive.google.com/uc?id="))
+            thumbUrl = `https://drive.google.com/thumbnail?id=${thumbUrl.split("id=")[1].split("&")[0]}&sz=w200`;
+
+          html += `
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex gap-4 mb-3 relative active:bg-gray-50 transition">
+                <img src="${thumbUrl}" class="w-20 h-20 object-cover rounded-lg bg-gray-50 shrink-0 border border-gray-100">
+                <div class="flex-1 min-w-0 flex flex-col justify-center">
+                    <h3 class="font-bold text-gray-800 text-sm truncate">${item.Eq_Name || "ไม่มีชื่อ"}</h3>
+                    <p class="text-xs text-blue-600 font-mono font-bold">${item.Eq_ID}</p>
+                    <p class="text-[10px] text-gray-500 truncate mt-1">📍 ${item.Location || "-"}</p>
+                </div>
+                <div class="flex flex-col justify-center">
+                    <button onclick="editMobileItem('${item.Eq_ID}')" class="bg-yellow-100 text-yellow-700 px-4 py-3 rounded-lg font-bold text-sm shadow-sm active:scale-95 transition">✏️ แก้ไข</button>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+      }
+
+      function handleSearch() {
+        const q = document.getElementById("searchInput").value.toLowerCase();
+        filteredList = globalEquipmentList.filter(
+          (item) =>
+            (item.Eq_ID && item.Eq_ID.toLowerCase().includes(q)) ||
+            (item.Eq_Name && item.Eq_Name.toLowerCase().includes(q)) ||
+            (item.Asset_ID && item.Asset_ID.toLowerCase().includes(q)),
+        );
+        renderMobileCards();
+      }
+
+      // ==========================================
+      // 3. จัดการฟอร์ม และ อัปโหลดรูปภาพ
+      // ==========================================
+      function openMobileModal() {
+        currentEditId = null;
+        document.getElementById("modal-title").innerText =
+          "📦 เพิ่มอุปกรณ์ใหม่";
+        document.getElementById("crud-form").reset();
+        document.getElementById("eqId").value = "รันรหัสอัตโนมัติ...";
+
+        existingImagesToKeep = [];
+        deletedImageUrls = [];
+        newImageFiles = [];
+        renderEditGallery();
+        document.getElementById("mobile-crud-modal").classList.remove("hidden");
+      }
+
+      function editMobileItem(id) {
+        currentEditId = id;
+        document.getElementById("modal-title").innerText = `✏️ แก้ไข: ${id}`;
+        const item = globalEquipmentList.find((x) => x.Eq_ID == id);
+        if (item) {
+          document.getElementById("eqId").value = item.Eq_ID || "";
+          document.getElementById("eqName").value = item.Eq_Name || "";
+          document.getElementById("eqBrand").value = item.Brand || "";
+          document.getElementById("eqModel").value = item.Model || "";
+          document.getElementById("eqSN").value = item.SN || "";
+          document.getElementById("eqAssetId").value = item.Asset_ID || "";
+
+          const ev = (val) => {
+            if (typeof val === "object" && val !== null) {
+              let v = Array.isArray(val) ? val : Object.values(val);
+              return v.length > 1 ? v[1] : v[0];
+            }
+            return val;
+          };
+          document.getElementById("eqCategory").value = ev(item.Category) || "";
+          document.getElementById("eqStatus").value = ev(item.Status) || "ว่าง";
+          document.getElementById("eqLocation").value = ev(item.Location) || "";
+
+          existingImagesToKeep = (item.Image_URL || "")
+            .split(",")
+            .filter((u) => u.trim() !== "");
+          deletedImageUrls = [];
+          newImageFiles = [];
+          renderEditGallery();
+        }
+        document.getElementById("mobile-crud-modal").classList.remove("hidden");
+      }
+
+      function closeMobileModal() {
+        document.getElementById("mobile-crud-modal").classList.add("hidden");
+      }
+
+      function handleImageSelection(e) {
+        const files = Array.from(e.target.files);
+        const slots = 5 - (existingImagesToKeep.length + newImageFiles.length);
+        if (slots <= 0) {
+          Swal.fire("เต็มแล้ว", "อัปโหลดได้สูงสุด 5 ภาพ", "warning");
+          return;
+        }
+
+        files.slice(0, slots).forEach((file) => {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            newImageFiles.push({ file: file, previewUrl: evt.target.result });
+            renderEditGallery();
+          };
+          reader.readAsDataURL(file);
+        });
+        e.target.value = "";
+      }
+
+      function renderEditGallery() {
+        const gal = document.getElementById("edit-image-gallery");
+        gal.innerHTML = "";
+        existingImagesToKeep.forEach((url, i) => {
+          let thumb = url.includes("drive.google.com/uc?id=")
+            ? `https://drive.google.com/thumbnail?id=${url.split("id=")[1].split("&")[0]}&sz=w150`
+            : url;
+          gal.innerHTML += `<div class="relative shrink-0"><img src="${thumb}" class="w-16 h-16 object-cover rounded border shadow-sm"><div onclick="rmOldImg(${i})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center cursor-pointer text-[10px] font-bold">X</div></div>`;
+        });
+        newImageFiles.forEach((img, i) => {
+          gal.innerHTML += `<div class="relative shrink-0"><img src="${img.previewUrl}" class="w-16 h-16 object-cover rounded border-2 border-blue-400"><div onclick="rmNewImg(${i})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center cursor-pointer text-[10px] font-bold">X</div></div>`;
+        });
+      }
+      function rmOldImg(i) {
+        deletedImageUrls.push(existingImagesToKeep.splice(i, 1)[0]);
+        renderEditGallery();
+      }
+      function rmNewImg(i) {
+        newImageFiles.splice(i, 1);
+        renderEditGallery();
+      }
+
+      async function saveEquipment() {
+        const eqName = document.getElementById("eqName").value;
+        if (!eqName)
+          return Swal.fire("เตือน", "กรุณากรอกชื่ออุปกรณ์", "warning");
+
+        Swal.fire({
+          title: "กำลังบันทึกข้อมูล...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
+        const payload = {
+          eqId: currentEditId || "",
+          eqName: eqName,
+          brand: document.getElementById("eqBrand").value,
+          model: document.getElementById("eqModel").value,
+          sn: document.getElementById("eqSN").value,
+          assetId: document.getElementById("eqAssetId").value,
+          category: document.getElementById("eqCategory").value,
+          status: document.getElementById("eqStatus").value,
+          location: document.getElementById("eqLocation").value,
+          retainedImages: existingImagesToKeep.join(","),
+          deletedImages: deletedImageUrls.join(","),
+          images: [],
+        };
+
+        if (newImageFiles.length > 0) {
+          payload.images = await Promise.all(
+            newImageFiles.map(
+              (imgObj) =>
+                new Promise((res) => {
+                  const img = new Image();
+                  img.onload = () => {
+                    const cvs = document.createElement("canvas");
+                    let w = img.width,
+                      h = img.height;
+                    if (w > h) {
+                      if (w > 800) {
+                        h *= 800 / w;
+                        w = 800;
+                      }
+                    } else {
+                      if (h > 800) {
+                        w *= 800 / h;
+                        h = 800;
+                      }
+                    }
+                    cvs.width = w;
+                    cvs.height = h;
+                    cvs.getContext("2d").drawImage(img, 0, 0, w, h);
+                    res({
+                      base64Image: cvs
+                        .toDataURL("image/jpeg", 0.7)
+                        .split(",")[1],
+                      mimeType: "image/jpeg",
+                    });
+                  };
+                  img.src = imgObj.previewUrl;
+                }),
+            ),
+          );
+        }
+
+        try {
+          const action = currentEditId ? "editEquipment" : "addEquipment";
+          const req = await fetch(`${API_URL}?action=${action}`, {
+            method: "POST",
+            body: JSON.stringify({ action: action, payload: payload }),
+          });
+          const resp = await req.json();
+
+          if (resp.status === "success") {
+            Swal.fire({
+              icon: "success",
+              title: "สำเร็จ",
+              timer: 1500,
+              showConfirmButton: false,
+            });
+            closeMobileModal();
+            loadDataFromAPI();
+          } else Swal.fire("Error", resp.message, "error");
+        } catch (e) {
+          Swal.fire("Error", "เชื่อมต่อล้มเหลว", "error");
+        }
+      }
+
+      // ==========================================
+      // 4. สแกนเนอร์
+      // ==========================================
+      let html5QrCode = null;
+      function openScanner() {
+        document.getElementById("scanner-modal").classList.remove("hidden");
+        html5QrCode = new Html5Qrcode("reader");
+        html5QrCode
+          .start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (text) => {
+              closeScanner();
+              processScannedQR(text);
+            },
+            (err) => {},
+          )
+          .catch(() => {
+            Swal.fire("Error", "เปิดกล้องไม่ได้", "error");
+            closeScanner();
+          });
+      }
+      function closeScanner() {
+        document.getElementById("scanner-modal").classList.add("hidden");
+        if (html5QrCode) html5QrCode.stop().then(() => html5QrCode.clear());
+      }
+      function processScannedQR(text) {
+        let id = text.includes("?id=")
+          ? new URL(text).searchParams.get("id")
+          : text;
+        const item = globalEquipmentList.find((x) => x.Eq_ID === id);
+        if (item) editMobileItem(item.Eq_ID);
+        else Swal.fire("ไม่พบ", `ไม่มีรหัส ${id}`, "warning");
+      }
+    </script>
+  </body>
+</html>
