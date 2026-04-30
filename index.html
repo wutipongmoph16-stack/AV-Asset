@@ -916,6 +916,69 @@
 
     <div id="print-container" class="hidden"></div>
 
+    <div
+      id="register-modal"
+      class="hidden fixed inset-0 bg-slate-900/95 z-[100] flex items-center justify-center p-4 backdrop-blur-md"
+    >
+      <div
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-up"
+      >
+        <div class="bg-blue-600 p-6 text-white text-center">
+          <h2 class="text-xl font-bold">ยืนยันตัวตนเจ้าหน้าที่</h2>
+          <p class="text-xs text-blue-100 mt-1">
+            กรุณาเลือกชื่อเพื่อเข้าใช้งานระบบ (สสจ.ลพบุรี)
+          </p>
+        </div>
+        <form id="register-form" class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1"
+              >ค้นหาชื่อ-นามสกุล</label
+            >
+            <input
+              type="text"
+              id="reg-name"
+              list="staff-datalist"
+              placeholder="พิมพ์ชื่อเพื่อค้นหา..."
+              required
+              autocomplete="off"
+              class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+            <datalist id="staff-datalist"></datalist>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1"
+              >กลุ่มงาน/ฝ่าย</label
+            >
+            <input
+              type="text"
+              id="reg-dept"
+              readonly
+              placeholder="ระบบจะระบุให้อัตโนมัติ"
+              class="w-full border border-gray-300 p-3 rounded-lg bg-gray-100 text-gray-600 font-medium"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1"
+              >เบอร์โทรศัพท์มือถือ</label
+            >
+            <input
+              type="tel"
+              id="reg-phone"
+              required
+              placeholder="08X-XXX-XXXX"
+              class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+          <button
+            type="submit"
+            class="w-full mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl shadow-md transition active:scale-95 text-lg"
+          >
+            ✅ ยืนยันข้อมูล
+          </button>
+        </form>
+      </div>
+    </div>
+
     <script>
       // ⚙️ การตั้งค่าระบบ
       const LIFF_ID = "ใส่_LIFF_ID_ของคุณที่นี่";
@@ -954,29 +1017,193 @@
         loadCategories();
       }
 
-      function setupUserProfile(profile) {
-        // 1. ซ่อนหน้า Login แบบเด็ดขาด
+      let globalStaffList = []; // เก็บรายชื่อเจ้าหน้าที่
+
+      // ==========================================
+      // 🟢 1. จัดการโปรไฟล์และการตรวจสอบการลงทะเบียน
+      // ==========================================
+      async function setupUserProfile(profile) {
         document.getElementById("login-page").style.display = "none";
+        Swal.fire({
+          title: "กำลังตรวจสอบสถานะ...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
 
-        // 2. แสดงหน้า Main App แบบบังคับ
-        const mainApp = document.getElementById("main-app");
-        mainApp.classList.remove("hidden", "page-section"); // ถอดคลาสที่ทำให้ซ่อนออกให้หมด
-        mainApp.style.display = "flex"; // บังคับให้แสดงผล
+        try {
+          const response = await fetch(
+            `${API_URL}?action=checkUserRegistration&userId=${profile.userId}`,
+          );
+          const res = await response.json();
 
-        // 3. หยอดข้อมูลโปรไฟล์
-        document.getElementById("user-display-name").innerText =
-          profile.displayName;
+          // 💡 เช็กโครงสร้างข้อมูลให้รัดกุม เพราะ GAS ของเราส่งข้อมูลหุ้มด้วย responseJSON
+          let isRegistered = false;
+          if (res.status === "success" && res.data) {
+            isRegistered = res.data.isRegistered;
+          } else if (res.isRegistered !== undefined) {
+            isRegistered = res.isRegistered;
+          }
 
-        // ถ้าโหลดรูปจาก LINE ไม่ได้ หรือเน็ตบล็อก ให้ใช้รูปภาพตั้งต้น (Fallback)
-        document.getElementById("user-profile-img").src =
-          profile.pictureUrl ||
-          "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+          if (isRegistered) {
+            Swal.close();
+            const mainApp = document.getElementById("main-app");
+            mainApp.classList.remove("hidden");
+            mainApp.style.display = "flex";
+            document.getElementById("user-display-name").innerText =
+              profile.displayName;
+            document.getElementById("user-profile-img").src =
+              profile.pictureUrl ||
+              "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
-        // 4. ใส่ชื่อในฟอร์มยืม
-        const borrowNameInput = document.getElementById("borrow-name");
-        if (borrowNameInput) {
-          borrowNameInput.value = profile.displayName;
+            changePage("dashboard");
+          } else {
+            Swal.close();
+            openRegistrationForm(profile);
+          }
+        } catch (error) {
+          console.error("Check Reg Error:", error);
+          Swal.fire("ข้อผิดพลาด", "ไม่สามารถตรวจสอบสถานะสมาชิกได้", "error");
         }
+      }
+
+      // ==========================================
+      // 🟢 2. ระบบลงทะเบียนด้วย StaffList
+      // ==========================================
+      async function openRegistrationForm(profile) {
+        try {
+          Swal.fire({
+            title: "กำลังเตรียมข้อมูลลงทะเบียน...",
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            },
+          });
+
+          const response = await fetch(
+            `${API_URL}?action=getStaffListForRegistration`,
+          );
+          const resJSON = await response.json();
+
+          // 💡 จุดสำคัญที่แก้ Error จอขาว: ต้องเจาะเข้าไปเอา .data ออกมา
+          let staffArray = [];
+          if (resJSON.status === "success" && Array.isArray(resJSON.data)) {
+            staffArray = resJSON.data;
+          } else if (Array.isArray(resJSON)) {
+            staffArray = resJSON;
+          }
+
+          globalStaffList = staffArray;
+
+          const dataList = document.getElementById("staff-datalist");
+          dataList.innerHTML = staffArray
+            .map((s) => `<option value="${s.name}">`)
+            .join("");
+
+          Swal.close();
+          document.getElementById("register-modal").classList.remove("hidden");
+
+          // ดักจับการพิมพ์ชื่อ เพื่อดึงกลุ่มงานอัตโนมัติ
+          document.getElementById("reg-name").oninput = function (e) {
+            const matched = globalStaffList.find(
+              (s) => s.name === e.target.value,
+            );
+            document.getElementById("reg-dept").value = matched
+              ? matched.department
+              : "";
+          };
+
+          // ส่งข้อมูลลงทะเบียนกลับไปที่ GAS
+          document.getElementById("register-form").onsubmit = async function (
+            e,
+          ) {
+            e.preventDefault();
+            const dept = document.getElementById("reg-dept").value;
+
+            if (!dept) {
+              return Swal.fire(
+                "คำเตือน",
+                "กรุณาเลือกชื่อที่มีในระบบเท่านั้น",
+                "warning",
+              );
+            }
+
+            Swal.fire({
+              title: "กำลังลงทะเบียน...",
+              allowOutsideClick: false,
+              didOpen: () => {
+                Swal.showLoading();
+              },
+            });
+
+            const payload = {
+              action: "registerLinkedUser",
+              payload: {
+                userId: profile.userId,
+                lineName: profile.displayName,
+                realName: document.getElementById("reg-name").value,
+                department: dept,
+                phone: document.getElementById("reg-phone").value,
+              },
+            };
+
+            const regRes = await fetch(API_URL, {
+              method: "POST",
+              body: JSON.stringify(payload),
+            });
+            const result = await regRes.json();
+
+            if (result.status === "success") {
+              Swal.fire("สำเร็จ!", "ยินดีต้อนรับเข้าสู่ระบบ", "success").then(
+                () => location.reload(),
+              );
+            } else {
+              Swal.fire(
+                "ข้อผิดพลาด",
+                result.message || "บันทึกข้อมูลไม่สำเร็จ",
+                "error",
+              );
+            }
+          };
+        } catch (e) {
+          console.error("Fetch Staff Error: ", e);
+          Swal.fire(
+            "ข้อผิดพลาด",
+            "โหลดรายชื่อเจ้าหน้าที่ไม่สำเร็จ (กรุณาเช็กหลังบ้าน)",
+            "error",
+          );
+        }
+      }
+
+      // ==========================================
+      // 🔄 ระบบสลับหน้าจอ (ย้ายขึ้นมาไว้ด้านบนเพื่อป้องกัน ReferenceError)
+      // ==========================================
+      function changePage(pageId) {
+        const allPages = document.querySelectorAll(".content-page");
+        allPages.forEach((p) => (p.style.display = "none"));
+
+        const target = document.getElementById("page-" + pageId);
+        if (target) {
+          target.style.display = "block";
+        } else {
+          Swal.fire(
+            "กำลังพัฒนา",
+            "หน้านี้กำลังอยู่ระหว่างการพัฒนาครับ",
+            "info",
+          );
+        }
+
+        // Highlight Menu
+        document.querySelectorAll("#nav-menu-list li").forEach((item) => {
+          item.classList.remove("bg-gray-700", "shadow-inner");
+          if (
+            item.getAttribute("onclick") &&
+            item.getAttribute("onclick").includes(pageId)
+          ) {
+            item.classList.add("bg-gray-700", "shadow-inner");
+          }
+        });
       }
 
       function liffLogin() {
