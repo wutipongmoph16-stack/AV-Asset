@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ฟอร์มยืมอุปกรณ์</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script
+      charset="utf-8"
+      src="https://static.line-scdn.net/liff/edge/2/sdk.js"
+    ></script>
+  </head>
+  <body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+      <h2 class="text-xl font-bold text-center text-blue-700 mb-6">
+        ฟอร์มทำรายการยืมอุปกรณ์
+      </h2>
+
+      <form id="borrowForm" onsubmit="submitBorrow(event)">
+        <div class="mb-4">
+          <label class="block text-gray-700 mb-2">รหัสอุปกรณ์</label>
+          <input
+            type="text"
+            id="eqId"
+            class="w-full border p-2 rounded focus:outline-none focus:border-blue-500"
+            placeholder="เช่น PRJ-001"
+            required
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700 mb-2"
+            >ชื่อผู้ยืม (ดึงจาก LINE อัตโนมัติ)</label
+          >
+          <input
+            type="text"
+            id="borrowerName"
+            class="w-full border p-2 rounded bg-gray-100"
+            readonly
+          />
+        </div>
+        <div class="mb-6">
+          <label class="block text-gray-700 mb-2">กำหนดคืน (วัน/เวลา)</label>
+          <input
+            type="datetime-local"
+            id="expectedReturn"
+            class="w-full border p-2 rounded"
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition"
+        >
+          ยืนยันการยืม
+        </button>
+      </form>
+    </div>
+
+    <script>
+      // ใส่ LIFF ID ของคุณ
+      const LIFF_ID = "ใส่_LIFF_ID_ที่นี่";
+
+      async function initLIFF() {
+        try {
+          await liff.init({ liffId: LIFF_ID });
+          if (liff.isLoggedIn()) {
+            const profile = await liff.getProfile();
+            document.getElementById("borrowerName").value = profile.displayName;
+            // สามารถเก็บ profile.userId ไว้ส่งไปให้ API ด้วย
+          } else {
+            liff.login();
+          }
+        } catch (err) {
+          console.error("LIFF Init Error:", err);
+        }
+      }
+
+      function submitBorrow(event) {
+        event.preventDefault();
+        // ยิง API ด้วย fetch ไปที่ GAS
+        Swal.fire("สำเร็จ", "บันทึกข้อมูลการยืมเรียบร้อยแล้ว", "success");
+      }
+
+      // initLIFF(); // ปลดคอมเมนต์เมื่อตั้งค่า LIFF ID แล้ว
+    </script>
+  </body>
+</html>

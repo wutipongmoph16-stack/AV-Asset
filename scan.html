@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>สแกนรับคืนอุปกรณ์</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script
+      charset="utf-8"
+      src="https://static.line-scdn.net/liff/edge/2/sdk.js"
+    ></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+  </head>
+  <body
+    class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4"
+  >
+    <div class="text-center w-full max-w-md">
+      <h2 class="text-2xl font-bold mb-4">📷 สแกนรับคืนอุปกรณ์</h2>
+      <p class="text-gray-400 mb-6">ระบบสแกนรองรับการทำงานแบบออฟไลน์</p>
+
+      <button
+        onclick="startScanner()"
+        class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full shadow-lg w-full mb-4"
+      >
+        เปิดกล้องสแกน
+      </button>
+
+      <div
+        id="offline-status"
+        class="hidden bg-yellow-600 text-white p-2 rounded mb-4"
+      >
+        ⚠️ มีรายการค้างส่งในเครื่อง <span id="queue-count">0</span> รายการ
+      </div>
+
+      <div
+        id="reader"
+        class="w-full bg-black rounded-lg overflow-hidden hidden border-2 border-gray-600"
+      ></div>
+    </div>
+
+    <script>
+      // โค้ดส่วน Logic สแกนและ Offline Queue (เหมือนที่อธิบายไปในสเตปก่อนหน้า)
+      function startScanner() {
+        if (liff.isInClient() && liff.scanCodeV2) {
+          liff.scanCodeV2().then((result) => {
+            if (result && result.value) processScanData(result.value);
+          });
+        } else {
+          document.getElementById("reader").style.display = "block";
+          const html5QrCode = new Html5Qrcode("reader");
+          html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => {
+              html5QrCode.stop();
+              document.getElementById("reader").style.display = "none";
+              processScanData(decodedText);
+            },
+            (error) => {},
+          );
+        }
+      }
+
+      function processScanData(eqId) {
+        if (navigator.onLine) {
+          Swal.fire(
+            "สแกนสำเร็จ",
+            `รหัส: ${eqId} ส่งคืนเข้าระบบแล้ว`,
+            "success",
+          );
+        } else {
+          Swal.fire(
+            "บันทึกออฟไลน์",
+            `อินเทอร์เน็ตขัดข้อง บันทึกรหัส ${eqId} ลงเครื่องแล้ว`,
+            "warning",
+          );
+          // โลจิก saveToOfflineQueue() ใส่ตรงนี้
+        }
+      }
+    </script>
+  </body>
+</html>

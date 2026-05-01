@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ระบบบริหารจัดการอุปกรณ์โสตฯ AVEAM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script
+      charset="utf-8"
+      src="https://static.line-scdn.net/liff/edge/2/sdk.js"
+    ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+      .page-section {
+        display: none;
+      }
+      .page-active {
+        display: flex;
+      }
+      .content-page {
+        display: none;
+      }
+      .content-active {
+        display: block;
+      }
+
+      /* Modal Animations */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+      }
+      .animate-slide-up {
+        animation: slideUp 0.3s ease-out forwards;
+      }
+
+      /* ซ่อนเมนูตอนพิมพ์รายงาน */
+      @media print {
+        .no-print {
+          display: none !important;
+        }
+        body {
+          background-color: white;
+        }
+        #main-app {
+          display: block !important;
+        }
+        aside {
+          display: none !important;
+        }
+        main {
+          padding: 0 !important;
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 font-sans text-gray-800">
+    <div
+      id="login-page"
+      class="page-section page-active min-h-screen items-center justify-center bg-blue-900"
+    >
+      <div
+        class="bg-white p-8 rounded-lg shadow-xl text-center max-w-sm w-full mx-4"
+      >
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">
+          ระบบจัดการอุปกรณ์โสตฯ
+        </h2>
+        <p class="text-gray-500 mb-6">กรุณาเข้าสู่ระบบด้วย LINE</p>
+        <button
+          onclick="liffLogin()"
+          class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-full flex items-center justify-center gap-2 transition"
+        >
+          💬 เข้าสู่ระบบด้วย LINE
+        </button>
+      </div>
+    </div>
+
+    <div
+      id="main-app"
+      class="page-section hidden min-h-screen flex-col md:flex-row"
+    >
+      <aside
+        class="bg-gray-800 text-white w-full md:w-64 flex-shrink-0 no-print"
+      >
+        <div class="p-4 border-b border-gray-700 flex items-center gap-3">
+          <img
+            id="user-profile-img"
+            src=""
+            class="w-10 h-10 rounded-full bg-gray-500 object-cover"
+          />
+          <div>
+            <p id="user-display-name" class="font-bold text-sm">กำลังโหลด...</p>
+            <p class="text-xs text-green-400">ออนไลน์</p>
+          </div>
+        </div>
+        <nav class="p-4 flex flex-col gap-2">
+          <button
+            onclick="navigate('dashboard')"
+            class="nav-btn text-left w-full p-2 hover:bg-gray-700 rounded"
+          >
+            📊 แดชบอร์ด & รายงาน
+          </button>
+          <button
+            onclick="navigate('crud')"
+            class="nav-btn text-left w-full p-2 hover:bg-gray-700 rounded bg-gray-700"
+          >
+            ⚙️ จัดการอุปกรณ์
+          </button>
+          <button
+            onclick="navigate('borrow')"
+            class="nav-btn text-left w-full p-2 hover:bg-gray-700 rounded"
+          >
+            🛒 ยืมอุปกรณ์
+          </button>
+          <button
+            onclick="navigate('scan')"
+            class="nav-btn text-left w-full p-2 hover:bg-gray-700 rounded"
+          >
+            📷 สแกนรับคืน
+          </button>
+          <button
+            onclick="liffLogout()"
+            class="text-left w-full p-2 text-red-400 hover:bg-gray-700 rounded mt-4"
+          >
+            🚪 ออกจากระบบ
+          </button>
+        </nav>
+      </aside>
+
+      <main class="flex-1 p-4 md:p-6 w-full max-w-6xl mx-auto overflow-y-auto">
+        <div id="page-dashboard" class="content-page">
+          <div id="report-area" class="bg-white p-6 rounded shadow">
+            <h2 class="text-2xl font-bold mb-4">
+              📊 รายงานสถานะอุปกรณ์โสตทัศนูปกรณ์
+            </h2>
+            <div class="flex flex-wrap gap-2 mb-4 no-print">
+              <button
+                onclick="window.print()"
+                class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+              >
+                🖨️ พิมพ์รายงาน
+              </button>
+              <button
+                onclick="
+                  Swal.fire('Info', 'ฟังก์ชันโหลด CSV กำลังพัฒนา', 'info')
+                "
+                class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+              >
+                📄 โหลด CSV
+              </button>
+              <button
+                onclick="
+                  Swal.fire('Info', 'ฟังก์ชันโหลด PDF กำลังพัฒนา', 'info')
+                "
+                class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+              >
+                📑 โหลด PDF
+              </button>
+            </div>
+            <p class="text-gray-500 p-10 text-center border-2 border-dashed">
+              พื้นที่แสดงกราฟและตารางสรุปข้อมูล
+            </p>
+          </div>
+        </div>
+
+        <div id="page-crud" class="content-page content-active">
+          <div
+            class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4"
+          >
+            <h2 class="text-2xl font-bold">⚙️ จัดการคลังอุปกรณ์ (AVEAM)</h2>
+            <button
+              onclick="openModal()"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow w-full sm:w-auto"
+            >
+              + เพิ่มอุปกรณ์ใหม่
+            </button>
+          </div>
+          <div class="bg-white rounded shadow overflow-x-auto">
+            <table
+              class="min-w-full text-left border-collapse whitespace-nowrap"
+            >
+              <thead class="bg-gray-200 text-gray-700">
+                <tr>
+                  <th class="py-3 px-4 border-b">รูปภาพ</th>
+                  <th class="py-3 px-4 border-b">รหัส</th>
+                  <th class="py-3 px-4 border-b">ข้อมูลอุปกรณ์</th>
+                  <th class="py-3 px-4 border-b">สถานที่</th>
+                  <th class="py-3 px-4 border-b">สถานะ</th>
+                  <th class="py-3 px-4 border-b text-center">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="crud-table-body">
+                <tr>
+                  <td colspan="6" class="text-center py-8 text-gray-500">
+                    ⏳ กำลังโหลดข้อมูล...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div
+          id="page-borrow"
+          class="content-page bg-white p-6 rounded shadow max-w-md mx-auto mt-4"
+        >
+          <h2 class="text-xl font-bold text-center text-blue-700 mb-6">
+            ฟอร์มทำรายการยืมอุปกรณ์
+          </h2>
+          <form
+            onsubmit="
+              event.preventDefault();
+              Swal.fire('สำเร็จ', 'ส่งคำขอยืมเรียบร้อย', 'success');
+            "
+          >
+            <div class="mb-4">
+              <label class="block text-gray-700 mb-2 text-sm font-bold"
+                >รหัสอุปกรณ์</label
+              >
+              <input
+                type="text"
+                id="borrow-eqId"
+                class="w-full border p-2 rounded"
+                placeholder="เช่น AV-001"
+                required
+              />
+            </div>
+            <div class="mb-4">
+              <label class="block text-gray-700 mb-2 text-sm font-bold"
+                >ชื่อผู้ยืม</label
+              >
+              <input
+                type="text"
+                id="borrow-name"
+                class="w-full border p-2 rounded bg-gray-100"
+                readonly
+              />
+            </div>
+            <div class="mb-6">
+              <label class="block text-gray-700 mb-2 text-sm font-bold"
+                >กำหนดคืน (วัน/เวลา)</label
+              >
+              <input
+                type="datetime-local"
+                class="w-full border p-2 rounded"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded transition"
+            >
+              ยืนยันการยืม
+            </button>
+          </form>
+        </div>
+
+        <div
+          id="page-scan"
+          class="content-page text-center max-w-md mx-auto mt-10"
+        >
+          <h2 class="text-2xl font-bold mb-4">📷 สแกนรับคืนอุปกรณ์</h2>
+          <p class="text-gray-500 mb-6 bg-yellow-100 p-2 rounded">
+            ⚡ ระบบรองรับการทำงานแบบออฟไลน์
+          </p>
+          <button
+            onclick="Swal.fire('เปิดกล้อง', 'ระบบกล้องพร้อมทำงาน', 'info')"
+            class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-8 rounded-full shadow-lg w-full text-lg transition transform hover:scale-105"
+          >
+            เปิดกล้องสแกน QR Code
+          </button>
+        </div>
+      </main>
+    </div>
+
+    <div
+      id="crud-modal"
+      class="hidden fixed inset-0 bg-gray-900/60 backdrop-blur-sm items-center justify-center p-4 z-50 animate-fade-in"
+    >
+      <div
+        class="bg-white rounded-lg shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[95vh] animate-slide-up"
+      >
+        <div
+          class="bg-blue-800 text-white p-4 flex justify-between items-center shrink-0"
+        >
+          <h3 class="text-lg font-bold" id="modal-title">
+            📦 ข้อมูลอุปกรณ์ AVEAM
+          </h3>
+          <button
+            onclick="closeModal()"
+            class="text-white hover:text-gray-200 text-2xl leading-none"
+          >
+            &times;
+          </button>
+        </div>
+
+        <div class="p-6 overflow-y-auto flex-1 bg-gray-50">
+          <form id="crud-form">
+            <div class="space-y-4">
+              <div
+                class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm"
+              >
+                <h4
+                  class="text-blue-700 font-bold text-sm mb-3 border-b pb-1 uppercase"
+                >
+                  Technical Identity
+                </h4>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label class="block text-xs font-bold text-gray-500"
+                      >รหัสอุปกรณ์ (Auto)</label
+                    >
+                    <input
+                      type="text"
+                      id="eqId"
+                      class="w-full border p-2 rounded bg-gray-200 font-mono text-xs text-gray-500"
+                      disabled
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-gray-500"
+                      >ชื่ออุปกรณ์ *</label
+                    >
+                    <input
+                      type="text"
+                      id="eqName"
+                      class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                      required
+                    />
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label class="block text-xs font-bold text-gray-500"
+                      >ยี่ห้อ (Brand)</label
+                    >
+                    <input
+                      type="text"
+                      id="eqBrand"
+                      class="w-full border p-2 rounded"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-gray-500"
+                      >รุ่น (Model)</label
+                    >
+                    <input
+                      type="text"
+                      id="eqModel"
+                      class="w-full border p-2 rounded"
+                    />
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-bold text-orange-600"
+                      >S/N (Serial Number)</label
+                    >
+                    <input
+                      type="text"
+                      id="eqSN"
+                      class="w-full border p-2 rounded border-orange-200"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-blue-800"
+                      >เลขครุภัณฑ์</label
+                    >
+                    <input
+                      type="text"
+                      id="eqAssetId"
+                      class="w-full border p-2 rounded border-blue-200"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm"
+              >
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label class="block text-xs font-bold text-gray-500"
+                      >หมวดหมู่</label
+                    >
+                    <select
+                      id="eqCategory"
+                      class="w-full border p-2 rounded bg-white"
+                    >
+                      <option value="">⏳ กำลังโหลด...</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-gray-500"
+                      >สถานะการใช้งาน</label
+                    >
+                    <select
+                      id="eqStatus"
+                      class="w-full border p-2 rounded bg-white font-bold"
+                    >
+                      <option value="ว่าง">✅ พร้อมใช้งาน</option>
+                      <option value="ถูกยืม">🛒 ถูกยืม</option>
+                      <option value="ส่งซ่อม">🔧 ส่งซ่อม</option>
+                      <option value="เสื่อมสภาพ">❌ เสื่อมสภาพ</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-gray-500 italic"
+                    >สถานที่จัดเก็บประจำ</label
+                  >
+                  <select
+                    id="eqLocation"
+                    class="w-full border p-2 rounded bg-blue-50 font-semibold"
+                  >
+                    <option value="">⏳ กำลังโหลด...</option>
+                  </select>
+                </div>
+              </div>
+
+              <div
+                class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm"
+              >
+                <label class="block text-xs font-bold text-gray-500 mb-2"
+                  >อัปโหลดรูปภาพใหม่</label
+                >
+                <input
+                  type="file"
+                  id="eqImage"
+                  accept="image/*"
+                  class="w-full text-xs"
+                />
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div
+          class="bg-gray-100 p-4 border-t flex flex-col sm:flex-row justify-between gap-2 shrink-0"
+        >
+          <button
+            onclick="closeModal()"
+            class="bg-gray-400 text-white px-6 py-2 rounded font-bold hover:bg-gray-500 transition"
+          >
+            ยกเลิก
+          </button>
+          <div class="flex gap-2">
+            <button
+              onclick="saveEquipment(true)"
+              id="btnSaveNext"
+              class="bg-green-600 text-white px-4 py-2 rounded font-bold hover:bg-green-700 shadow-md transition"
+            >
+              + บันทึก & ต่อไป
+            </button>
+            <button
+              onclick="saveEquipment(false)"
+              class="bg-blue-700 text-white px-6 py-2 rounded font-bold hover:bg-blue-800 shadow-md transition"
+            >
+              💾 บันทึกปิด
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ==========================================
+      // ⚙️ การตั้งค่าระบบ (อย่าลืมใส่ URL ของคุณ)
+      // ==========================================
+      const LIFF_ID = "ใส่_LIFF_ID_ของคุณที่นี่";
+      const API_URL = "ใส่_URL_GAS_ของคุณที่นี่/exec"; // ⚠️ สำคัญ: ต้องใส่ URL จริง
+
+      const DEV_MODE = true;
+
+      // ตัวแปรเก็บสถานะข้อมูล
+      let globalEquipmentList = [];
+      let currentEditId = null;
+
+      const MOCK_USER = {
+        userId: "U_dev_admin_001",
+        displayName: "คุณวุฒิพงษ์ (Admin)",
+        pictureUrl:
+          "https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff",
+      };
+
+      // ==========================================
+      // 🚀 เริ่มต้นแอปพลิเคชัน
+      // ==========================================
+      async function initApp() {
+        if (DEV_MODE) {
+          console.log("รันโหมด DEV");
+          setupUserProfile(MOCK_USER);
+        } else {
+          try {
+            await liff.init({ liffId: LIFF_ID });
+            if (liff.isLoggedIn()) {
+              setupUserProfile(await liff.getProfile());
+            }
+          } catch (err) {
+            console.error("LIFF Error:", err);
+          }
+        }
+
+        // โหลดข้อมูลต่างๆ หลังเข้าแอป
+        loadCategories();
+        loadLocations();
+        loadEquipmentData();
+      }
+
+      function setupUserProfile(profile) {
+        document.getElementById("login-page").style.display = "none";
+
+        const mainApp = document.getElementById("main-app");
+        mainApp.classList.remove("hidden", "page-section");
+        mainApp.style.display = "flex";
+
+        document.getElementById("user-display-name").innerText =
+          profile.displayName;
+        document.getElementById("user-profile-img").src =
+          profile.pictureUrl ||
+          "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+        const borrowNameInput = document.getElementById("borrow-name");
+        if (borrowNameInput) borrowNameInput.value = profile.displayName;
+      }
+
+      function liffLogin() {
+        DEV_MODE ? setupUserProfile(MOCK_USER) : liff.login();
+      }
+      function liffLogout() {
+        DEV_MODE
+          ? window.location.reload()
+          : (liff.logout(), window.location.reload());
+      }
+
+      function navigate(pageId) {
+        document
+          .querySelectorAll(".content-page")
+          .forEach((el) => el.classList.remove("content-active"));
+        document
+          .getElementById("page-" + pageId)
+          .classList.add("content-active");
+
+        document
+          .querySelectorAll(".nav-btn")
+          .forEach((btn) => btn.classList.remove("bg-gray-700"));
+        event.currentTarget.classList.add("bg-gray-700");
+      }
+
+      // ==========================================
+      // 🔄 ดึงข้อมูลจาก GAS (Dropdown & Table)
+      // ==========================================
+      function loadCategories() {
+        const selectEl = document.getElementById("eqCategory");
+        fetch(`${API_URL}?action=getCategories`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.status === "success") {
+              selectEl.innerHTML = "";
+              data.data.forEach((cat) => {
+                if (cat.name)
+                  selectEl.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
+              });
+            }
+          })
+          .catch(
+            () =>
+              (selectEl.innerHTML = `<option value="ทั่วไป">ทั่วไป</option>`),
+          );
+      }
+
+      function loadLocations() {
+        const selectEl = document.getElementById("eqLocation");
+        fetch(`${API_URL}?action=getLocations`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.status === "success") {
+              selectEl.innerHTML = "";
+              data.data.forEach((loc) => {
+                if (loc.name)
+                  selectEl.innerHTML += `<option value="${loc.name}">${loc.name}</option>`;
+              });
+            }
+          })
+          .catch(
+            () =>
+              (selectEl.innerHTML = `<option value="ศูนย์กลาง">ศูนย์กลาง</option>`),
+          );
+      }
+
+      function loadEquipmentData() {
+        const tableBody = document.getElementById("crud-table-body");
+        tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-gray-500">⏳ กำลังโหลดข้อมูล...</td></tr>`;
+
+        fetch(`${API_URL}?action=getEquipment`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.status === "success") {
+              globalEquipmentList = data.data;
+
+              if (data.data.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-500">❌ ยังไม่มีข้อมูลอุปกรณ์</td></tr>`;
+                return;
+              }
+
+              tableBody.innerHTML = "";
+              data.data.forEach((item) => {
+                let statusBadge = "";
+                if (item.Status === "ว่าง")
+                  statusBadge = `<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">✅ ว่าง</span>`;
+                else if (item.Status === "ถูกยืม")
+                  statusBadge = `<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold">🛒 ถูกยืม</span>`;
+                else if (item.Status === "ส่งซ่อม")
+                  statusBadge = `<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-bold">🔧 ส่งซ่อม</span>`;
+                else
+                  statusBadge = `<span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-bold">${item.Status}</span>`;
+
+                const imgUrl =
+                  item.Image_URL ||
+                  "https://via.placeholder.com/50?text=No+Img";
+
+                tableBody.innerHTML += `
+                                <tr class="hover:bg-gray-50 border-b">
+                                    <td class="py-2 px-4"><img src="${imgUrl}" class="w-12 h-12 rounded object-cover border"></td>
+                                    <td class="py-2 px-4 font-bold text-gray-700">${item.Eq_ID}</td>
+                                    <td class="py-2 px-4">
+                                        <div class="font-bold">${item.Eq_Name}</div>
+                                        <div class="text-xs text-gray-500">ยี่ห้อ: ${item.Brand || "-"} | รุ่น: ${item.Model || "-"}</div>
+                                    </td>
+                                    <td class="py-2 px-4 text-sm text-blue-600 font-semibold">${item.Location}</td>
+                                    <td class="py-2 px-4">${statusBadge}</td>
+                                    <td class="py-2 px-4 text-center">
+                                        <button onclick="editItem('${item.Eq_ID}')" class="text-yellow-600 hover:text-yellow-800 mx-1 bg-yellow-50 px-2 py-1 rounded shadow-sm">✏️</button>
+                                        <button onclick="deleteItem('${item.Eq_ID}')" class="text-red-600 hover:text-red-800 mx-1 bg-red-50 px-2 py-1 rounded shadow-sm">🗑️</button>
+                                    </td>
+                                </tr>
+                            `;
+              });
+            }
+          })
+          .catch(() => {
+            tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-500">⚠️ ข้อผิดพลาดในการโหลดข้อมูล โปรดตรวจสอบ API_URL</td></tr>`;
+          });
+      }
+
+      // ==========================================
+      // 📝 จัดการ Modal (เพิ่ม/แก้ไข)
+      // ==========================================
+      function openModal() {
+        currentEditId = null;
+        document.getElementById("crud-form").reset();
+        document.getElementById("modal-title").innerText =
+          "📦 เพิ่มอุปกรณ์ใหม่";
+
+        const eqIdInput = document.getElementById("eqId");
+        eqIdInput.value = "รันอัตโนมัติเมื่อบันทึก";
+
+        document.getElementById("btnSaveNext").style.display = "inline-block";
+
+        const modal = document.getElementById("crud-modal");
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+      }
+
+      function editItem(id) {
+        currentEditId = id;
+        document.getElementById("modal-title").innerText =
+          `✏️ แก้ไขข้อมูล: ${id}`;
+        document.getElementById("btnSaveNext").style.display = "none";
+
+        const item = globalEquipmentList.find((x) => x.Eq_ID == id);
+        if (item) {
+          document.getElementById("eqId").value = item.Eq_ID;
+          document.getElementById("eqName").value = item.Eq_Name || "";
+          document.getElementById("eqBrand").value = item.Brand || "";
+          document.getElementById("eqModel").value = item.Model || "";
+          document.getElementById("eqSN").value = item.SN || "";
+          document.getElementById("eqAssetId").value = item.Asset_ID || "";
+          document.getElementById("eqCategory").value = item.Category || "";
+          document.getElementById("eqStatus").value = item.Status || "ว่าง";
+          document.getElementById("eqLocation").value = item.Location || "";
+        }
+
+        const modal = document.getElementById("crud-modal");
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+      }
+
+      function closeModal() {
+        const modal = document.getElementById("crud-modal");
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      }
+
+      // ==========================================
+      // 💾 บันทึกข้อมูลและยิง API
+      // ==========================================
+      function saveEquipment(isAddNext) {
+        const eqName = document.getElementById("eqName").value;
+        if (!eqName) {
+          Swal.fire("แจ้งเตือน", "กรุณากรอกชื่ออุปกรณ์ *", "warning");
+          return;
+        }
+
+        Swal.fire({
+          title: "กำลังบันทึกข้อมูล...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
+        const payloadData = {
+          eqId: currentEditId || "", // ถ้าเพิ่มใหม่ จะส่งค่าว่างให้ GAS สร้างให้
+          eqName: eqName,
+          brand: document.getElementById("eqBrand").value,
+          model: document.getElementById("eqModel").value,
+          sn: document.getElementById("eqSN").value,
+          assetId: document.getElementById("eqAssetId").value,
+          category: document.getElementById("eqCategory").value,
+          status: document.getElementById("eqStatus").value,
+          location: document.getElementById("eqLocation").value,
+          // หมายเหตุ: เอาฟิลด์ Vendor, Price ออกจากหน้า UI เพื่อความกระชับ แต่ถ้าต้องการเพิ่มก็ใส่กลับเข้ามาได้เลยครับ
+        };
+
+        const fileInput = document.getElementById("eqImage");
+        if (fileInput && fileInput.files.length > 0) {
+          const file = fileInput.files[0];
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            payloadData.base64Image = e.target.result.split(",")[1];
+            payloadData.mimeType = file.type;
+            payloadData.fileName = file.name;
+            sendDataToBackend(payloadData, isAddNext);
+          };
+          reader.readAsDataURL(file);
+        } else {
+          sendDataToBackend(payloadData, isAddNext);
+        }
+      }
+
+      function sendDataToBackend(payloadData, isAddNext) {
+        const actionName = currentEditId ? "editEquipment" : "addEquipment";
+
+        fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: actionName, payload: payloadData }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.status === "success") {
+              Swal.fire({
+                icon: "success",
+                title: "บันทึกสำเร็จ",
+                text: `รหัสอุปกรณ์: ${data.data.eqId}`,
+                showConfirmButton: false,
+                timer: 1500,
+              });
+
+              if (isAddNext) {
+                document.getElementById("eqName").value = "";
+                document.getElementById("eqBrand").value = "";
+                document.getElementById("eqModel").value = "";
+                document.getElementById("eqSN").value = "";
+                document.getElementById("eqAssetId").value = "";
+                if (document.getElementById("eqImage"))
+                  document.getElementById("eqImage").value = "";
+                document.getElementById("eqName").focus();
+              } else {
+                closeModal();
+              }
+              loadEquipmentData();
+            } else {
+              Swal.fire(
+                "ข้อผิดพลาด",
+                data.message || "ไม่สามารถบันทึกได้",
+                "error",
+              );
+            }
+          })
+          .catch((err) => {
+            console.error(err);
+            Swal.fire(
+              "ข้อผิดพลาด",
+              "เชื่อมต่อฐานข้อมูลไม่สำเร็จ (ตรวจสอบ API_URL)",
+              "error",
+            );
+          });
+      }
+
+      function deleteItem(id) {
+        Swal.fire({
+          title: `ต้องการลบ ${id}?`,
+          text: "หากลบแล้วจะไม่สามารถกู้คืนได้",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#d33",
+          cancelButtonColor: "#3085d6",
+          confirmButtonText: "ลบเลย!",
+          cancelButtonText: "ยกเลิก",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            Swal.fire("Info", "ฟังก์ชันลบอุปกรณ์อยู่ระหว่างการพัฒนา", "info");
+            // รอต่อ API ลบอุปกรณ์ในสเตปถัดไปครับ
+          }
+        });
+      }
+
+      // เริ่มแอป
+      initApp();
+    </script>
+  </body>
+</html>
