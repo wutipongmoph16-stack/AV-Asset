@@ -955,6 +955,70 @@
     <!-- Container สำหรับพิมพ์ QR-Code   -->
     <div id="print-container" class="hidden"></div>
 
+    <!-- 📄 Modal: ลงทะเบียน (Register) -->
+    <div
+      id="register-modal"
+      class="hidden fixed inset-0 bg-slate-900/95 z-[100] flex items-center justify-center p-4 backdrop-blur-md"
+    >
+      <div
+        class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-up"
+      >
+        <div class="bg-blue-600 p-6 text-white text-center">
+          <h2 class="text-xl font-bold">ยืนยันตัวตนเจ้าหน้าที่</h2>
+          <p class="text-xs text-blue-100 mt-1">
+            กรุณาเลือกชื่อเพื่อเข้าใช้งานระบบ (สสจ.ลพบุรี)
+          </p>
+        </div>
+        <form id="register-form" class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1"
+              >ค้นหาชื่อ-นามสกุล</label
+            >
+            <input
+              type="text"
+              id="reg-name"
+              list="staff-datalist"
+              placeholder="พิมพ์ชื่อเพื่อค้นหา..."
+              required
+              autocomplete="off"
+              class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+            <datalist id="staff-datalist"></datalist>
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1"
+              >กลุ่มงาน/ฝ่าย</label
+            >
+            <input
+              type="text"
+              id="reg-dept"
+              readonly
+              placeholder="ระบบจะระบุให้อัตโนมัติ"
+              class="w-full border border-gray-300 p-3 rounded-lg bg-gray-100 text-gray-600 font-medium"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1"
+              >เบอร์โทรศัพท์มือถือ</label
+            >
+            <input
+              type="tel"
+              id="reg-phone"
+              required
+              placeholder="08X-XXX-XXXX"
+              class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+          <button
+            type="submit"
+            class="w-full mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl shadow-md transition active:scale-95 text-lg"
+          >
+            ✅ ยืนยันข้อมูล
+          </button>
+        </form>
+      </div>
+    </div>
+
     <script>
       // 🛑 ตั้งค่าระบบ
       const LIFF_ID = "2009938016-HZcSBpYm"; //admin 2009938016-HZcSBpYm
