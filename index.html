@@ -1043,13 +1043,11 @@
               `<span class="${roleColor}">⭐ ${currentUserRole} Mode</span>`;
 
             applyRoleRestrictions();
-            loadEquipmentData(); // โหลดข้อมูลทุกอย่างที่นี่
+            loadEquipmentData();
           } else {
-            Swal.fire(
-              "ปฏิเสธการเข้าถึง",
-              "บัญชีของคุณยังไม่ได้ลงทะเบียนในระบบ AVEAM",
-              "error",
-            );
+            // 💡 แก้ไขตรงนี้: สั่งให้ไปเรียกฟังก์ชันหน้าต่างลงทะเบียน แทนการเด้งแจ้งเตือน
+            Swal.close();
+            openRegistrationForm(profile);
           }
         } catch (error) {
           console.error(error);
