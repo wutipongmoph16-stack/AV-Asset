@@ -1132,6 +1132,113 @@
         }
       }
 
+      // ==========================================
+      // 🟢 ระบบลงทะเบียนด้วย StaffList
+      // ==========================================
+      let globalStaffList = [];
+
+      async function openRegistrationForm(profile) {
+        try {
+          Swal.fire({
+            title: "กำลังเตรียมข้อมูลลงทะเบียน...",
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            },
+          });
+
+          const response = await fetch(
+            `${API_URL}?action=getStaffListForRegistration`,
+          );
+          const resJSON = await response.json();
+
+          let staffArray = [];
+          if (resJSON.status === "success" && Array.isArray(resJSON.data)) {
+            staffArray = resJSON.data;
+          } else if (Array.isArray(resJSON)) {
+            staffArray = resJSON;
+          }
+
+          globalStaffList = staffArray;
+          const dataList = document.getElementById("staff-datalist");
+          dataList.innerHTML = staffArray
+            .map((s) => `<option value="${s.name}">`)
+            .join("");
+
+          Swal.close();
+          document.getElementById("register-modal").classList.remove("hidden");
+
+          // ดักจับการพิมพ์ชื่อ เพื่อดึงกลุ่มงานอัตโนมัติ
+          document.getElementById("reg-name").oninput = function (e) {
+            const matched = globalStaffList.find(
+              (s) => s.name === e.target.value,
+            );
+            document.getElementById("reg-dept").value = matched
+              ? matched.department
+              : "";
+          };
+
+          // ส่งข้อมูลลงทะเบียนกลับไปที่ GAS
+          document.getElementById("register-form").onsubmit = async function (
+            e,
+          ) {
+            e.preventDefault();
+            const dept = document.getElementById("reg-dept").value;
+
+            if (!dept)
+              return Swal.fire(
+                "คำเตือน",
+                "กรุณาเลือกชื่อที่มีในระบบเท่านั้น",
+                "warning",
+              );
+
+            Swal.fire({
+              title: "กำลังลงทะเบียน...",
+              allowOutsideClick: false,
+              didOpen: () => {
+                Swal.showLoading();
+              },
+            });
+
+            const payload = {
+              action: "registerLinkedUser",
+              payload: {
+                userId: profile.userId,
+                lineName: profile.displayName,
+                realName: document.getElementById("reg-name").value,
+                department: dept,
+                phone: document.getElementById("reg-phone").value,
+              },
+            };
+
+            const regRes = await fetch(API_URL, {
+              method: "POST",
+              body: JSON.stringify(payload),
+            });
+            const result = await regRes.json();
+
+            if (result.status === "success") {
+              Swal.fire("สำเร็จ!", "ยินดีต้อนรับเข้าสู่ระบบ", "success").then(
+                () => location.reload(),
+              );
+            } else {
+              Swal.fire(
+                "ข้อผิดพลาด",
+                result.message || "บันทึกข้อมูลไม่สำเร็จ",
+                "error",
+              );
+            }
+          };
+        } catch (e) {
+          console.error("Fetch Staff Error: ", e);
+          Swal.fire(
+            "ข้อผิดพลาด",
+            "โหลดรายชื่อเจ้าหน้าที่ไม่สำเร็จ (กรุณาเช็กหลังบ้าน)",
+            "error",
+          );
+        }
+      }
+
       function liffLogin() {
         DEV_MODE ? setupUserProfile(MOCK_USER) : liff.login();
       }
