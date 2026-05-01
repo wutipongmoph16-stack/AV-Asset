@@ -41,6 +41,17 @@
       .animate-slide-up {
         animation: slideUp 0.2s ease-out forwards;
       }
+      .fade-in {
+        animation: fadeIn 0.3s ease-in-out;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
     </style>
   </head>
   <body class="flex flex-col h-[100dvh] overflow-hidden bg-gray-100">
@@ -102,30 +113,80 @@
         class="flex-1 overflow-y-auto pb-24 relative bg-gray-100"
         id="main-content"
       >
+        <!-- 🎛️ Control Bar -->
         <div
-          class="sticky top-0 bg-gray-100 p-4 z-20 shadow-sm border-b border-gray-200"
+          class="sticky top-0 bg-gray-100 p-4 z-20 shadow-sm border-b border-gray-200 space-y-3"
         >
-          <div class="relative">
-            <span class="absolute left-4 top-3.5 text-gray-400 text-lg"
-              >🔍</span
+          <div class="flex gap-2">
+            <div class="relative flex-1">
+              <span class="absolute left-4 top-3 text-gray-400 text-lg"
+                >🔍</span
+              >
+              <input
+                type="text"
+                id="searchInput"
+                oninput="handleFilters()"
+                placeholder="ค้นหาชื่อ, รหัส, ครุภัณฑ์..."
+                class="w-full bg-white border border-gray-300 rounded-full py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+              />
+            </div>
+            <button
+              onclick="toggleViewMode()"
+              id="btn-view-toggle"
+              class="bg-white border border-gray-300 w-12 rounded-full shadow-sm flex items-center justify-center text-xl hover:bg-gray-50 active:scale-95 transition"
             >
-            <input
-              type="text"
-              id="searchInput"
-              oninput="handleSearch()"
-              placeholder="ค้นหาเพื่อแก้ไขข้อมูล..."
-              class="w-full bg-white border border-gray-300 rounded-full py-3.5 pl-12 pr-4 text-base focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
-            />
+              📇
+            </button>
           </div>
-          <p class="text-sm text-gray-500 font-bold mt-3 px-2" id="total-items">
-            กำลังเชื่อมต่อ API...
-          </p>
+          <div
+            id="category-container"
+            class="flex overflow-x-auto gap-2 pb-1 hide-scrollbar"
+          ></div>
+          <div class="flex justify-between items-center px-1">
+            <span class="text-sm text-gray-600 font-bold" id="total-items"
+              >กำลังเชื่อมต่อ API...</span
+            >
+            <select
+              id="itemsPerPageSelect"
+              onchange="changeItemsPerPage()"
+              class="text-xs border border-gray-300 bg-white rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
+            >
+              <option value="10">10 / หน้า</option>
+              <option value="20">20 / หน้า</option>
+              <option value="50">50 / หน้า</option>
+            </select>
+          </div>
         </div>
 
-        <div class="p-4" id="crud-card-container"></div>
+        <!-- เนื้อหา (Cards หรือ Table) -->
+        <div class="p-4" id="content-container"></div>
+
+        <!-- 📄 Pagination -->
+        <div
+          id="pagination-controls"
+          class="hidden flex justify-between items-center p-4 bg-white border-t border-gray-200 mt-2 mx-4 mb-4 rounded-xl shadow-sm"
+        >
+          <button
+            onclick="prevPage()"
+            id="btn-prev"
+            class="px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm font-bold text-gray-600 active:bg-gray-200 disabled:opacity-40 disabled:active:bg-gray-50 transition"
+          >
+            ◀
+          </button>
+          <span id="page-info" class="text-sm font-bold text-blue-600"
+            >หน้า 1 / 1</span
+          >
+          <button
+            onclick="nextPage()"
+            id="btn-next"
+            class="px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm font-bold text-gray-600 active:bg-gray-200 disabled:opacity-40 disabled:active:bg-gray-50 transition"
+          >
+            ▶
+          </button>
+        </div>
       </main>
 
-      <!-- ปุ่มเพิ่มอุปกรณ์ (FAB) -->
+      <!-- FAB เพิ่มอุปกรณ์ -->
       <button
         onclick="openMobileModal()"
         class="fixed bottom-24 right-5 w-16 h-16 bg-blue-600 text-white rounded-full shadow-xl flex justify-center items-center text-4xl font-bold hover:bg-blue-700 active:scale-95 transition z-30 pb-1 border-2 border-white"
@@ -133,7 +194,6 @@
         +
       </button>
 
-      <!-- Bottom Nav -->
       <nav
         class="bg-white border-t border-gray-200 flex justify-between items-center px-8 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-4px_15px_rgba(0,0,0,0.05)] z-40 shrink-0 relative"
       >
@@ -153,6 +213,153 @@
       </nav>
     </div>
 
+    <!-- 📋 Modal: View Details -->
+    <div
+      id="mobile-view-modal"
+      class="hidden fixed inset-0 bg-gray-50 z-40 flex flex-col animate-slide-up"
+    >
+      <div
+        class="bg-slate-800 text-white p-4 flex justify-between items-center shadow-md shrink-0"
+      >
+        <button
+          onclick="closeViewModal()"
+          class="text-white font-bold text-sm px-4 py-2 bg-slate-700 rounded-lg active:scale-95"
+        >
+          ◀ กลับ
+        </button>
+        <h2 class="text-base font-bold">📋 ข้อมูลอุปกรณ์</h2>
+        <button
+          onclick="editFromView()"
+          class="font-bold text-sm px-3 py-2 bg-yellow-500 text-slate-900 rounded-lg active:scale-95 shadow-sm"
+        >
+          ✏️ แก้ไข
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-4 pb-10">
+        <div
+          class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4"
+        >
+          <div
+            id="view-gallery-thumbs"
+            class="flex gap-3 overflow-x-auto pb-2 hide-scrollbar snap-x"
+          ></div>
+          <p class="text-center text-[10px] text-gray-400 mt-2">
+            👆 แตะที่รูปภาพเพื่อดูขนาดเต็มจอ
+          </p>
+        </div>
+        <div
+          class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 space-y-4"
+        >
+          <div class="border-b pb-3">
+            <h3
+              id="v-name"
+              class="text-xl font-bold text-gray-800 leading-tight"
+            ></h3>
+            <p
+              id="v-id"
+              class="text-sm font-mono font-bold text-blue-600 mt-1"
+            ></p>
+            <div id="v-status-badge" class="mt-2"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-y-3 gap-x-2 text-sm">
+            <div
+              class="col-span-2 text-gray-500 text-xs font-bold uppercase mt-2"
+            >
+              📍 สถานที่เก็บ
+            </div>
+            <div
+              class="col-span-2 font-medium text-gray-800 bg-gray-50 p-2 rounded"
+              id="v-location"
+            ></div>
+
+            <div
+              class="col-span-2 text-gray-500 text-xs font-bold uppercase border-t pt-3 mt-1"
+            >
+              ⚙️ ข้อมูลทางเทคนิค
+            </div>
+            <div class="text-gray-500">หมวดหมู่:</div>
+            <div
+              class="font-medium text-right text-gray-800"
+              id="v-category"
+            ></div>
+            <div class="text-gray-500">ประเภทพัสดุ:</div>
+            <div
+              class="font-medium text-right text-indigo-600"
+              id="v-type"
+            ></div>
+            <div class="text-gray-500">ยี่ห้อ:</div>
+            <div
+              class="font-medium text-right text-gray-800"
+              id="v-brand"
+            ></div>
+            <div class="text-gray-500">รุ่น:</div>
+            <div
+              class="font-medium text-right text-gray-800"
+              id="v-model"
+            ></div>
+            <div class="text-gray-500">S/N:</div>
+            <div
+              class="font-medium text-right text-orange-600 font-mono"
+              id="v-sn"
+            ></div>
+            <div class="text-gray-500">เลขครุภัณฑ์:</div>
+            <div
+              class="font-medium text-right text-blue-600"
+              id="v-asset"
+            ></div>
+
+            <div
+              class="col-span-2 text-gray-500 text-xs font-bold uppercase border-t pt-3 mt-1"
+            >
+              💰 ข้อมูลจัดซื้อ
+            </div>
+            <div class="text-gray-500">ร้านค้า:</div>
+            <div
+              class="font-medium text-right text-gray-800"
+              id="v-vendor"
+            ></div>
+            <div class="text-gray-500">ราคา:</div>
+            <div
+              class="font-medium text-right text-gray-800"
+              id="v-price"
+            ></div>
+            <div class="text-gray-500">วันที่ซื้อ:</div>
+            <div
+              class="font-medium text-right text-gray-800"
+              id="v-purchase-date"
+            ></div>
+            <div class="text-gray-500">หมดประกัน:</div>
+            <div
+              class="font-medium text-right text-red-600"
+              id="v-warranty"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🔍 Modal: Lightbox -->
+    <div
+      id="mobile-lightbox"
+      class="hidden fixed inset-0 bg-black z-[100] flex flex-col"
+    >
+      <button
+        onclick="closeLightbox()"
+        class="absolute top-4 right-4 text-white bg-black/50 w-10 h-10 rounded-full text-2xl z-20 flex items-center justify-center backdrop-blur-sm"
+      >
+        &times;
+      </button>
+      <div
+        id="lightbox-container"
+        class="flex-1 flex overflow-x-auto snap-x snap-mandatory hide-scrollbar items-center"
+        onscroll="updateLightboxDots()"
+      ></div>
+      <div
+        id="lightbox-dots"
+        class="absolute bottom-8 left-0 right-0 flex justify-center gap-2 z-20"
+      ></div>
+    </div>
+
     <!-- 📝 Modal: ฟอร์มเพิ่ม/แก้ไขข้อมูล -->
     <div
       id="mobile-crud-modal"
@@ -165,24 +372,32 @@
           onclick="closeMobileModal()"
           class="text-white font-bold text-sm px-3 py-2 bg-blue-800 rounded active:scale-95"
         >
-          ◀ ยกเลิก
+          ◀ กลับ
         </button>
         <h2 id="modal-title" class="text-sm font-bold truncate px-2">
           📦 เพิ่มอุปกรณ์ใหม่
         </h2>
-        <button
-          id="btn-save-main"
-          onclick="saveEquipment()"
-          class="text-white font-bold text-sm px-3 py-2 bg-green-500 rounded shadow active:scale-95"
-        >
-          💾 บันทึก
-        </button>
+        <div class="flex gap-2">
+          <button
+            id="btn-save-next"
+            onclick="saveEquipment(true)"
+            class="text-slate-900 font-bold text-xs px-2 py-1 bg-yellow-400 rounded shadow leading-tight active:scale-95"
+          >
+            บันทึก<br />เพิ่มต่อ
+          </button>
+          <button
+            id="btn-save-main"
+            onclick="saveEquipment(false)"
+            class="text-white font-bold text-sm px-3 py-1 bg-green-500 rounded shadow active:scale-95"
+          >
+            บันทึก
+          </button>
+        </div>
       </div>
 
       <div class="flex-1 overflow-y-auto p-4">
         <form id="crud-form" class="space-y-4 pb-20">
           <input type="hidden" id="eqId" />
-
           <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
             <h4 class="text-blue-600 font-bold text-xs mb-3 uppercase">
               📝 ข้อมูลทั่วไป
@@ -201,11 +416,14 @@
                 <div class="flex-1">
                   <label class="block text-xs font-bold text-gray-500 mb-1"
                     >ยี่ห้อ</label
-                  ><input
+                  >
+                  <input
                     type="text"
                     id="eqBrand"
+                    list="brandList"
                     class="w-full border bg-gray-50 p-2 rounded text-sm outline-none focus:ring-2 focus:ring-blue-400"
                   />
+                  <datalist id="brandList"></datalist>
                 </div>
                 <div class="flex-1">
                   <label class="block text-xs font-bold text-gray-500 mb-1"
@@ -239,18 +457,75 @@
           </div>
 
           <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <h4 class="text-purple-600 font-bold text-xs mb-3 uppercase">
+              💰 ข้อมูลเพิ่มเติม (จัดซื้อ & รับประกัน)
+            </h4>
+            <div class="space-y-3">
+              <div class="flex gap-3">
+                <div class="flex-1">
+                  <label class="block text-xs font-bold text-gray-500 mb-1"
+                    >ร้านค้า / บริษัท</label
+                  ><input
+                    type="text"
+                    id="eqVendor"
+                    class="w-full border bg-gray-50 p-2 rounded text-sm outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+                <div class="flex-1">
+                  <label class="block text-xs font-bold text-gray-500 mb-1"
+                    >ราคา (บาท)</label
+                  ><input
+                    type="number"
+                    id="eqPrice"
+                    class="w-full border bg-gray-50 p-2 rounded text-sm outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+              </div>
+              <div class="flex gap-3">
+                <div class="flex-1">
+                  <label class="block text-xs font-bold text-gray-500 mb-1"
+                    >วันที่ซื้อ</label
+                  ><input
+                    type="date"
+                    id="eqPurchaseDate"
+                    class="w-full border bg-gray-50 p-2 rounded text-sm outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+                <div class="flex-1">
+                  <label class="block text-xs font-bold text-gray-500 mb-1"
+                    >วันหมดประกัน</label
+                  ><input
+                    type="date"
+                    id="eqWarranty"
+                    class="w-full border bg-gray-50 p-2 rounded text-sm outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
             <h4 class="text-yellow-600 font-bold text-xs mb-3 uppercase">
               🏷️ หมวดหมู่ & สถานะ
             </h4>
             <div class="space-y-3">
-              <div>
-                <label class="block text-xs font-bold text-gray-500 mb-1"
-                  >หมวดหมู่</label
-                >
-                <select
-                  id="eqCategory"
-                  class="w-full border bg-gray-50 p-2 rounded text-sm outline-none focus:ring-2 focus:ring-yellow-400"
-                ></select>
+              <div class="flex gap-3">
+                <div class="flex-1">
+                  <label class="block text-xs font-bold text-gray-500 mb-1"
+                    >หมวดหมู่ (การใช้งาน)</label
+                  ><select
+                    id="eqCategory"
+                    class="w-full border bg-gray-50 p-2 rounded text-sm outline-none focus:ring-2 focus:ring-yellow-400"
+                  ></select>
+                </div>
+                <div class="flex-1">
+                  <label class="block text-xs font-bold text-gray-500 mb-1"
+                    >ประเภท (ระเบียบพัสดุฯ)</label
+                  ><select
+                    id="eqAssetType"
+                    class="w-full border bg-gray-50 p-2 rounded text-sm font-bold text-indigo-600 outline-none focus:ring-2 focus:ring-yellow-400"
+                  ></select>
+                </div>
               </div>
               <div class="flex gap-3">
                 <div class="flex-1">
@@ -270,8 +545,7 @@
                 <div class="flex-1">
                   <label class="block text-xs font-bold text-gray-500 mb-1"
                     >สถานที่เก็บ</label
-                  >
-                  <select
+                  ><select
                     id="eqLocation"
                     class="w-full border bg-gray-50 p-2 rounded text-sm outline-none focus:ring-2 focus:ring-yellow-400"
                   ></select>
@@ -279,17 +553,6 @@
               </div>
             </div>
           </div>
-
-          <div
-            class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hidden"
-            id="purchase-section"
-          >
-            <h4 class="text-purple-600 font-bold text-xs mb-3 uppercase">
-              💰 จัดซื้อ (เฉพาะแอดมินเห็น)
-            </h4>
-            <!-- ช่องราคา ซ่อนไว้สำหรับ Staff ยืดหยุ่นได้ -->
-          </div>
-
           <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
             <h4 class="text-green-600 font-bold text-xs mb-3 uppercase">
               🖼️ ถ่ายรูป / อัปโหลด (สูงสุด 5 รูป)
@@ -316,7 +579,7 @@
       </div>
     </div>
 
-    <!-- Modal: Scanner -->
+    <!-- 📷 Modal: Scanner -->
     <div
       id="scanner-modal"
       class="hidden fixed inset-0 bg-black z-[100] flex flex-col"
@@ -330,7 +593,7 @@
         >
           ◀ ปิดกล้อง
         </button>
-        <h2 class="text-base font-bold pr-6">📷 สแกนแก้ไขข้อมูล</h2>
+        <h2 class="text-base font-bold pr-6">📷 สแกนรหัส</h2>
       </div>
       <div
         class="flex-1 bg-black flex items-center justify-center relative px-4"
@@ -347,16 +610,23 @@
       const LIFF_ID = "2009938016-JZpuP1dr"; //ทีมงานโสตฯ สสจ.ลพบุรี
       const API_URL =
         "https://script.google.com/macros/s/AKfycbyRiTxTt0lgo0bAU7DIq7QB5jWx9Zx1EV_8Zs7mW1LphcgJT2WbK2LkrEV792PPTH5wSg/exec";
-      const DEV_MODE = true; // เปลี่ยนเป็น false เมื่อใช้จริงใน LINE
+      const DEV_MODE = false;
 
       let globalEquipmentList = [];
       let filteredList = [];
+      let categories = ["ทั้งหมด"];
+      let selectedCategory = "ทั้งหมด";
+      let viewMode = "card"; // 'card' หรือ 'table'
+      let currentPage = 1;
+      let itemsPerPage = 10;
+
       let currentEditId = null;
       let currentUserRole = "User";
 
       let existingImagesToKeep = [];
       let deletedImageUrls = [];
       let newImageFiles = [];
+      let allAssetTypes = [];
 
       window.onload = function () {
         if (DEV_MODE) {
@@ -367,9 +637,8 @@
           });
         } else {
           liff.init({ liffId: LIFF_ID }).then(() => {
-            if (liff.isLoggedIn()) {
+            if (liff.isLoggedIn())
               liff.getProfile().then((profile) => setupUserProfile(profile));
-            }
           });
         }
       };
@@ -398,10 +667,7 @@
             `${API_URL}?action=checkUserRegistration&userId=${profile.userId}`,
           );
           const data = await res.json();
-
           let isReg = false;
-
-          // 💡 แก้ไขข้อ 2: เจาะข้อมูลให้ถูกโครงสร้าง (รองรับ responseJSON ของ GAS)
           if (data.status === "success" && data.data) {
             isReg = data.data.isRegistered;
             currentUserRole = data.data.role || "User";
@@ -424,7 +690,6 @@
                 profile.pictureUrl;
             document.getElementById("user-role-badge").innerText =
               currentUserRole === "Admin" ? "⭐ Admin Mode" : "🛠️ Staff Mode";
-
             loadDataFromAPI();
           } else {
             Swal.fire({
@@ -441,7 +706,7 @@
       }
 
       // ==========================================
-      // 2. โหลดและแสดงข้อมูล
+      // 2. โหลดและจัดการข้อมูล (Filter & Pagination)
       // ==========================================
       async function loadDataFromAPI() {
         Swal.fire({
@@ -452,21 +717,21 @@
           },
         });
         try {
-          const [eqRes, catRes, locRes] = await Promise.all([
+          const [eqRes, catRes, locRes, typeRes] = await Promise.all([
             fetch(`${API_URL}?action=getEquipment`),
             fetch(`${API_URL}?action=getCategories`).catch(() => null),
             fetch(`${API_URL}?action=getLocations`).catch(() => null),
+            fetch(`${API_URL}?action=getAssetTypes`).catch(() => null),
           ]);
 
-          const eqData = await eqRes.json();
           const buildOption = (item) => {
-            if (typeof item === "object" && item !== null) {
-              let vals = Array.isArray(item) ? item : Object.values(item);
-              let id = vals[0] || "";
-              let name = vals.length > 1 ? vals[1] : id;
-              return `<option value="${name}">${name}</option>`;
-            }
-            return `<option value="${item}">${item}</option>`;
+            let name =
+              typeof item === "object"
+                ? Object.values(item).length > 1
+                  ? Object.values(item)[1]
+                  : Object.values(item)[0]
+                : item;
+            return `<option value="${name}">${name}</option>`;
           };
 
           if (catRes) {
@@ -483,11 +748,48 @@
                 .map(buildOption)
                 .join("");
           }
+          if (typeRes) {
+            const tData = await typeRes.json();
+            if (tData.status === "success") {
+              allAssetTypes = tData.data;
+              document.getElementById("eqAssetType").innerHTML = tData.data
+                .map(buildOption)
+                .join("");
+            }
+          }
 
+          const eqData = await eqRes.json();
           if (eqData.status === "success") {
             globalEquipmentList = eqData.data || [];
-            filteredList = [...globalEquipmentList];
-            renderMobileCards();
+
+            const uniqueCats = [
+              ...new Set(
+                globalEquipmentList
+                  .map((i) => {
+                    let val = i.Category;
+                    if (typeof val === "object" && val !== null)
+                      val = Array.isArray(val)
+                        ? val[1] || val[0]
+                        : Object.values(val)[1] || Object.values(val)[0];
+                    return val;
+                  })
+                  .filter((c) => c),
+              ),
+            ];
+            categories = ["ทั้งหมด", ...uniqueCats];
+
+            const uniqueBrands = [
+              ...new Set(
+                globalEquipmentList.map((item) => item.Brand).filter((b) => b),
+              ),
+            ];
+            document.getElementById("brandList").innerHTML = uniqueBrands
+              .map((b) => `<option value="${b}">`)
+              .join("");
+
+            renderCategoryChips();
+            filterAssetTypes();
+            handleFilters();
             Swal.close();
           }
         } catch (error) {
@@ -495,67 +797,472 @@
         }
       }
 
-      function renderMobileCards() {
-        const container = document.getElementById("crud-card-container");
+      function renderCategoryChips() {
+        const catContainer = document.getElementById("category-container");
+        catContainer.innerHTML = "";
+        categories.forEach((cat) => {
+          const isActive = cat === selectedCategory;
+          const btnClass = isActive
+            ? "bg-blue-600 text-white font-bold border-blue-600 shadow-md"
+            : "bg-white text-gray-600 font-medium border-gray-200 shadow-sm hover:bg-gray-50";
+          catContainer.innerHTML += `<button onclick="selectCategory('${cat}')" class="px-4 py-1.5 rounded-full border text-sm whitespace-nowrap transition-all ${btnClass}">${cat}</button>`;
+        });
+      }
+
+      function selectCategory(cat) {
+        selectedCategory = cat;
+        renderCategoryChips();
+        handleFilters();
+      }
+
+      function handleFilters() {
+        const query = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        filteredList = globalEquipmentList.filter((item) => {
+          let itemCat = item.Category;
+          if (typeof itemCat === "object" && itemCat !== null)
+            itemCat = Array.isArray(itemCat)
+              ? itemCat[1] || itemCat[0]
+              : Object.values(itemCat)[1] || Object.values(itemCat)[0];
+
+          const matchCategory =
+            selectedCategory === "ทั้งหมด" || itemCat === selectedCategory;
+          const matchSearch =
+            (item.Eq_ID && item.Eq_ID.toLowerCase().includes(query)) ||
+            (item.Eq_Name && item.Eq_Name.toLowerCase().includes(query)) ||
+            (item.Asset_ID && item.Asset_ID.toLowerCase().includes(query));
+          return matchCategory && matchSearch;
+        });
+        currentPage = 1;
+        renderContent();
+      }
+
+      function toggleViewMode() {
+        viewMode = viewMode === "card" ? "table" : "card";
+        document.getElementById("btn-view-toggle").innerHTML =
+          viewMode === "card" ? "📇" : "📋";
+        renderContent();
+      }
+
+      function renderContent() {
+        const container = document.getElementById("content-container");
+        const totalItems = filteredList.length;
         document.getElementById("total-items").innerText =
-          `พบคลังอุปกรณ์ ${filteredList.length} รายการ`;
-        if (filteredList.length === 0) {
-          container.innerHTML = `<div class="text-center py-10 text-gray-400">ไม่พบข้อมูล</div>`;
+          `พบ ${totalItems} รายการ`;
+
+        if (totalItems === 0) {
+          container.innerHTML = `<div class="text-center py-10 text-gray-400 bg-white rounded-xl shadow-sm border border-gray-200">❌ ไม่พบข้อมูลอุปกรณ์</div>`;
+          document
+            .getElementById("pagination-controls")
+            .classList.add("hidden");
           return;
         }
 
-        let html = "";
-        filteredList.slice(0, 50).forEach((item) => {
-          // แสดงแค่ 50 รายการแรกเพื่อความลื่นไหลในมือถือ
-          const rawUrl = item.Image_URL || "";
-          let thumbUrl =
-            rawUrl.split(",")[0].trim() ||
-            "https://via.placeholder.com/150?text=No+Img";
-          if (thumbUrl.includes("drive.google.com/uc?id="))
-            thumbUrl = `https://drive.google.com/thumbnail?id=${thumbUrl.split("id=")[1].split("&")[0]}&sz=w200`;
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        if (currentPage > totalPages) currentPage = totalPages;
 
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const paginatedItems = filteredList.slice(
+          startIndex,
+          startIndex + parseInt(itemsPerPage),
+        );
+
+        container.innerHTML = "";
+        container.classList.add("fade-in");
+        setTimeout(() => container.classList.remove("fade-in"), 300);
+
+        if (viewMode === "card") renderAsCards(container, paginatedItems);
+        else renderAsTable(container, paginatedItems);
+
+        document
+          .getElementById("pagination-controls")
+          .classList.remove("hidden");
+        document.getElementById("page-info").innerText =
+          `หน้า ${currentPage} / ${totalPages}`;
+        document.getElementById("btn-prev").disabled = currentPage === 1;
+        document.getElementById("btn-next").disabled =
+          currentPage === totalPages;
+      }
+
+      // Helper functions
+      function getStatusBadge(status) {
+        if (status === "ว่าง")
+          return `<span class="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-[10px] rounded text-center font-bold">✅ ว่าง</span>`;
+        if (status === "ถูกยืม")
+          return `<span class="inline-block px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] rounded text-center font-bold">🛒 ถูกยืม</span>`;
+        if (status === "ส่งซ่อม" || status === "ชำรุด")
+          return `<span class="inline-block px-2 py-0.5 bg-red-100 text-red-700 text-[10px] rounded text-center font-bold">🔧 ${status}</span>`;
+        return `<span class="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] rounded text-center font-bold">${status || "-"}</span>`;
+      }
+      function getThumbUrl(rawUrl) {
+        let url = rawUrl ? rawUrl.split(",")[0].trim() : "";
+        if (!url) return "https://via.placeholder.com/150?text=No+Img";
+        if (url.includes("drive.google.com/uc?id="))
+          return `https://drive.google.com/thumbnail?id=${url.split("id=")[1].split("&")[0]}&sz=w200`;
+        return url;
+      }
+      function formatThaiDate(dateString) {
+        if (!dateString) return "-";
+        try {
+          const date = new Date(dateString);
+          if (isNaN(date.getTime())) return "-";
+          const months = [
+            "ม.ค.",
+            "ก.พ.",
+            "มี.ค.",
+            "เม.ย.",
+            "พ.ค.",
+            "มิ.ย.",
+            "ก.ค.",
+            "ส.ค.",
+            "ก.ย.",
+            "ต.ค.",
+            "พ.ย.",
+            "ธ.ค.",
+          ];
+          const d = String(date.getDate()).padStart(2, "0");
+          const m = months[date.getMonth()];
+          const y = String(date.getFullYear() + 543).slice(-2);
+          return `${d} ${m} ${y}`;
+        } catch (e) {
+          return "-";
+        }
+      }
+      function formatCurrency(amount) {
+        if (!amount && amount !== 0) return "-";
+        return Number(amount).toLocaleString("th-TH") + " บาท";
+      }
+
+      function renderAsCards(container, items) {
+        let html = "";
+        items.forEach((item) => {
           html += `
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex gap-4 mb-3 relative active:bg-gray-50 transition">
-                <img src="${thumbUrl}" class="w-20 h-20 object-cover rounded-lg bg-gray-50 shrink-0 border border-gray-100">
-                <div class="flex-1 min-w-0 flex flex-col justify-center">
-                    <h3 class="font-bold text-gray-800 text-sm truncate">${item.Eq_Name || "ไม่มีชื่อ"}</h3>
-                    <p class="text-xs text-blue-600 font-mono font-bold">${item.Eq_ID}</p>
-                    <p class="text-[10px] text-gray-500 truncate mt-1">📍 ${item.Location || "-"}</p>
-                </div>
-                <div class="flex flex-col justify-center">
-                    <button onclick="editMobileItem('${item.Eq_ID}')" class="bg-yellow-100 text-yellow-700 px-4 py-3 rounded-lg font-bold text-sm shadow-sm active:scale-95 transition">✏️ แก้ไข</button>
-                </div>
-            </div>`;
+                  <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex gap-4 mb-4 relative active:bg-gray-50 transition cursor-pointer" onclick="viewMobileItem('${item.Eq_ID}')">
+                      <img src="${getThumbUrl(item.Image_URL)}" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=No+Img';" class="w-24 h-24 object-cover rounded-xl bg-gray-50 shrink-0 border border-gray-100 shadow-sm">
+                      <div class="flex-1 min-w-0 flex flex-col justify-center space-y-1">
+                          <h3 class="font-bold text-gray-800 text-sm leading-tight truncate">${item.Eq_Name || "ไม่มีชื่อ"}</h3>
+                          <p class="text-xs text-blue-600 font-mono font-bold">${item.Eq_ID}</p>
+                          <div class="grid grid-cols-1 gap-0.5 mt-1">
+                              <p class="text-[11px] text-gray-500 truncate">🔖 ยี่ห้อ/รุ่น: <span class="text-gray-700 font-medium">${item.Brand || "-"} / ${item.Model || "-"}</span></p>
+                              <p class="text-[11px] text-gray-500 truncate">🏷️ ครุภัณฑ์: <span class="text-orange-600 font-mono font-medium">${item.Asset_ID || "-"}</span></p>
+                              <p class="text-[11px] text-gray-500 truncate">📍 สถานที่: <span class="text-gray-700 font-medium">${item.Location || "ไม่ระบุ"}</span></p>
+                          </div>
+                          <div class="mt-1">${getStatusBadge(item.Status)}</div>
+                      </div>
+                      <div class="flex flex-col justify-center z-10">
+                          <button onclick="event.stopPropagation(); editMobileItem('${item.Eq_ID}')" class="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-3 py-2 rounded-lg font-bold text-xs shadow-sm active:scale-95 transition">✏️ แก้ไข</button>
+                      </div>
+                  </div>`;
         });
         container.innerHTML = html;
       }
 
-      function handleSearch() {
-        const q = document.getElementById("searchInput").value.toLowerCase();
-        filteredList = globalEquipmentList.filter(
-          (item) =>
-            (item.Eq_ID && item.Eq_ID.toLowerCase().includes(q)) ||
-            (item.Eq_Name && item.Eq_Name.toLowerCase().includes(q)) ||
-            (item.Asset_ID && item.Asset_ID.toLowerCase().includes(q)),
+      function renderAsTable(container, items) {
+        let tbodyHtml = "";
+        items.forEach((item) => {
+          // ดึงป้ายสถานะมาใช้
+          let statusBadge = getStatusBadge(item.Status);
+          // สร้างป้ายเลขครุภัณฑ์ (ถ้ามี)
+          let assetBadge = item.Asset_ID
+            ? `<span class="text-[9px] sm:text-[10px] text-orange-600 font-mono bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">🏷️ ${item.Asset_ID}</span>`
+            : "";
+          // สร้างป้ายสถานที่
+          let locationBadge = `<span class="text-[9px] sm:text-[10px] text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">📍 ${item.Location || "-"}</span>`;
+
+          tbodyHtml += `
+                  <tr class="border-b border-gray-100 active:bg-blue-50 transition cursor-pointer hover:bg-gray-50" onclick="viewMobileItem('${item.Eq_ID}')">
+                      <td class="p-2 w-12 text-center align-top pt-3"><img src="${getThumbUrl(item.Image_URL)}" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=No+Img';" class="w-10 h-10 object-cover rounded-lg border inline-block"></td>
+                      <td class="p-2 font-mono font-bold text-blue-600 text-[10px] sm:text-xs align-top pt-3 w-16 sm:w-20">${item.Eq_ID}</td>
+                      <td class="p-2 align-top pt-2.5">
+                          <div class="font-bold text-gray-800 text-[11px] sm:text-sm leading-tight">${item.Eq_Name || "-"}</div>
+                          <div class="mt-1.5 flex flex-wrap gap-1 items-center">
+                              
+                              ${assetBadge}
+                              ${locationBadge}
+                          </div>
+                      </td>
+                      <td class="p-2 text-center whitespace-nowrap align-top pt-3 w-12">
+                          <button onclick="event.stopPropagation(); editMobileItem('${item.Eq_ID}')" class="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-2.5 py-1.5 rounded-lg font-bold text-[10px] shadow-sm active:scale-95 transition">✏️</button>
+                      </td>
+                  </tr>`;
+        });
+
+        container.innerHTML = `
+              <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
+                  <table class="w-full text-left border-collapse min-w-full">
+                      <thead class="bg-gray-50 text-gray-500 text-[10px] sm:text-xs uppercase font-bold border-b border-gray-200">
+                          <tr>
+                              <th class="p-3 w-12 text-center">รูป</th>
+                              <th class="p-3">รหัส</th>
+                              <th class="p-3">ข้อมูลอุปกรณ์</th>
+                              <th class="p-3 text-center">จัดการ</th>
+                          </tr>
+                      </thead>
+                      <tbody>${tbodyHtml}</tbody>
+                  </table>
+              </div>`;
+      }
+
+      function changeItemsPerPage() {
+        itemsPerPage = parseInt(
+          document.getElementById("itemsPerPageSelect").value,
         );
-        renderMobileCards();
+        currentPage = 1;
+        renderContent();
+        document
+          .getElementById("main-content")
+          .scrollTo({ top: 0, behavior: "smooth" });
+      }
+      function prevPage() {
+        if (currentPage > 1) {
+          currentPage--;
+          renderContent();
+          document
+            .getElementById("main-content")
+            .scrollTo({ top: 0, behavior: "smooth" });
+        }
+      }
+      function nextPage() {
+        const totalPages = Math.ceil(filteredList.length / itemsPerPage);
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderContent();
+          document
+            .getElementById("main-content")
+            .scrollTo({ top: 0, behavior: "smooth" });
+        }
       }
 
       // ==========================================
-      // 3. จัดการฟอร์ม และ อัปโหลดรูปภาพ
+      // 3. 👁️ ระบบดูรายละเอียด (View Details)
       // ==========================================
-      function openMobileModal() {
+      let currentViewItem = null;
+      function viewMobileItem(id) {
+        currentViewItem = globalEquipmentList.find((x) => x.Eq_ID == id);
+        if (!currentViewItem) return;
+        document.getElementById("v-name").innerText =
+          currentViewItem.Eq_Name || "-";
+        document.getElementById("v-id").innerText =
+          currentViewItem.Eq_ID || "-";
+
+        const ev = (val) => {
+          if (typeof val === "object" && val !== null) {
+            let v = Array.isArray(val) ? val : Object.values(val);
+            return v.length > 1 ? v[1] : v[0];
+          }
+          return val;
+        };
+        document.getElementById("v-category").innerText =
+          ev(currentViewItem.Category) || "-";
+        document.getElementById("v-type").innerText =
+          ev(currentViewItem.Asset_Type) || "-";
+        document.getElementById("v-brand").innerText =
+          currentViewItem.Brand || "-";
+        document.getElementById("v-model").innerText =
+          currentViewItem.Model || "-";
+        document.getElementById("v-sn").innerText = currentViewItem.SN || "-";
+        document.getElementById("v-asset").innerText =
+          currentViewItem.Asset_ID || "-";
+        document.getElementById("v-location").innerText =
+          ev(currentViewItem.Location) || "-";
+
+        document.getElementById("v-vendor").innerText =
+          currentViewItem.Vendor || "-";
+        document.getElementById("v-price").innerText = formatCurrency(
+          currentViewItem.Price,
+        );
+        document.getElementById("v-purchase-date").innerText = formatThaiDate(
+          currentViewItem.Purchase_Date,
+        );
+        document.getElementById("v-warranty").innerText = formatThaiDate(
+          currentViewItem.Warranty_Expiry,
+        );
+
+        document.getElementById("v-status-badge").innerHTML = getStatusBadge(
+          currentViewItem.Status,
+        );
+
+        const rawUrl = currentViewItem.Image_URL || "";
+        const urls = rawUrl.split(",").filter((u) => u.trim() !== "");
+        const galDiv = document.getElementById("view-gallery-thumbs");
+        galDiv.innerHTML = "";
+        if (urls.length === 0) {
+          galDiv.innerHTML = `<div class="w-full text-center text-gray-400 py-6 bg-gray-50 rounded-lg text-sm border border-dashed border-gray-200">ไม่มีรูปภาพประกอบ</div>`;
+        } else {
+          urls.forEach((url, i) => {
+            let thumb = url.includes("drive.google.com/uc?id=")
+              ? `https://drive.google.com/thumbnail?id=${url.split("id=")[1].split("&")[0]}&sz=w300`
+              : url;
+            galDiv.innerHTML += `<img src="${thumb}" onclick="openLightbox(${i})" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=No+Img';" class="w-32 h-32 object-cover rounded-xl shadow-sm border border-gray-200 shrink-0 cursor-pointer active:opacity-70 snap-center">`;
+          });
+        }
+        document.getElementById("mobile-view-modal").classList.remove("hidden");
+      }
+      function closeViewModal() {
+        document.getElementById("mobile-view-modal").classList.add("hidden");
+      }
+      function editFromView() {
+        closeViewModal();
+        editMobileItem(currentViewItem.Eq_ID);
+      }
+
+      function openLightbox(startIndex) {
+        if (!currentViewItem) return;
+        let lightboxUrls = (currentViewItem.Image_URL || "")
+          .split(",")
+          .filter((u) => u.trim() !== "");
+        if (lightboxUrls.length === 0) return;
+        const container = document.getElementById("lightbox-container");
+        const dotsContainer = document.getElementById("lightbox-dots");
+        container.innerHTML = "";
+        dotsContainer.innerHTML = "";
+        lightboxUrls.forEach((url, i) => {
+          let fullUrl = url.includes("drive.google.com/uc?id=")
+            ? `https://drive.google.com/thumbnail?id=${url.split("id=")[1].split("&")[0]}&sz=w1000`
+            : url;
+          container.innerHTML += `<div class="w-screen h-screen flex-shrink-0 flex items-center justify-center snap-center p-2"><img src="${fullUrl}" class="max-w-full max-h-[85vh] object-contain rounded-lg"></div>`;
+          dotsContainer.innerHTML += `<div id="dot-${i}" class="w-2 h-2 rounded-full ${i === startIndex ? "bg-white" : "bg-white/40"} transition-all"></div>`;
+        });
+        document.getElementById("mobile-lightbox").classList.remove("hidden");
+        setTimeout(() => {
+          container.scrollTo({
+            left: startIndex * window.innerWidth,
+            behavior: "instant",
+          });
+        }, 10);
+      }
+      function closeLightbox() {
+        document.getElementById("mobile-lightbox").classList.add("hidden");
+      }
+      function updateLightboxDots() {
+        const container = document.getElementById("lightbox-container");
+        const index = Math.round(container.scrollLeft / window.innerWidth);
+        let lightboxUrls = (currentViewItem.Image_URL || "")
+          .split(",")
+          .filter((u) => u.trim() !== "");
+        lightboxUrls.forEach((_, i) => {
+          const dot = document.getElementById(`dot-${i}`);
+          if (dot)
+            dot.className = `w-2 h-2 rounded-full transition-all duration-300 ${i === index ? "bg-white scale-125" : "bg-white/40"}`;
+        });
+      }
+
+      // ==========================================
+      // 4. จัดการฟอร์มแก้ไขข้อมูล และ อัปโหลดรูปภาพ
+      // ==========================================
+      function filterAssetTypes() {
+        const catValue = document.getElementById("eqCategory").value || "";
+        const typeSelect = document.getElementById("eqAssetType");
+        if (!typeSelect || allAssetTypes.length === 0) return;
+
+        let allowedKeywords = [];
+        if (
+          catValue.includes("อุปกรณ์เสริม") ||
+          catValue.includes("เบ็ดเตล็ด") ||
+          catValue.includes("Accessories")
+        )
+          allowedKeywords = ["วัสดุ"];
+        else if (
+          catValue.includes("คอมพิวเตอร์") ||
+          catValue.includes("IT") ||
+          catValue.includes("เครือข่าย")
+        )
+          allowedKeywords = ["คอมพิวเตอร์"];
+        else if (
+          catValue.includes("ภาพ") ||
+          catValue.includes("เสียง") ||
+          catValue.includes("แสง") ||
+          catValue.includes("ถ่ายทอดสด") ||
+          catValue.includes("Camera") ||
+          catValue.includes("สายสัญญาณ") ||
+          catValue.includes("หัวแปลง")
+        )
+          allowedKeywords = ["โฆษณาและเผยแพร่"];
+        else
+          allowedKeywords = [
+            "ไฟฟ้าและวิทยุ",
+            "โฆษณาและเผยแพร่",
+            "คอมพิวเตอร์",
+            "วัสดุ",
+          ];
+
+        const currentSelectedType = typeSelect.value;
+        typeSelect.innerHTML = "";
+        let hasMatch = false;
+        allAssetTypes.forEach((item) => {
+          let typeName =
+            typeof item === "object"
+              ? Object.values(item).length > 1
+                ? Object.values(item)[1]
+                : Object.values(item)[0]
+              : item;
+          if (allowedKeywords.some((kw) => typeName.includes(kw))) {
+            const option = document.createElement("option");
+            option.value = typeName;
+            option.text = typeName;
+            typeSelect.appendChild(option);
+            if (typeName === currentSelectedType) {
+              option.selected = true;
+              hasMatch = true;
+            }
+          }
+        });
+        if (!hasMatch && typeSelect.options.length > 0) {
+          typeSelect.selectedIndex = 0;
+          typeSelect.classList.remove("text-indigo-600");
+          typeSelect.classList.add(
+            "bg-green-100",
+            "text-green-700",
+            "ring-2",
+            "ring-green-500",
+            "transition-all",
+            "duration-300",
+          );
+          setTimeout(() => {
+            typeSelect.classList.remove(
+              "bg-green-100",
+              "text-green-700",
+              "ring-2",
+              "ring-green-500",
+            );
+            typeSelect.classList.add("text-indigo-600");
+          }, 1000);
+        }
+      }
+      document
+        .getElementById("eqCategory")
+        .addEventListener("change", filterAssetTypes);
+
+      async function openMobileModal() {
         currentEditId = null;
         document.getElementById("modal-title").innerText =
           "📦 เพิ่มอุปกรณ์ใหม่";
         document.getElementById("crud-form").reset();
-        document.getElementById("eqId").value = "รันรหัสอัตโนมัติ...";
 
+        document.getElementById("btn-save-next").classList.remove("hidden");
+        const btnMain = document.getElementById("btn-save-main");
+        btnMain.className =
+          "text-white font-bold text-sm px-3 py-1 bg-green-500 rounded shadow active:scale-95";
+        btnMain.innerText = "บันทึก";
+
+        document.getElementById("eqId").value = "กำลังสร้างรหัส...";
+        filterAssetTypes();
         existingImagesToKeep = [];
         deletedImageUrls = [];
         newImageFiles = [];
         renderEditGallery();
         document.getElementById("mobile-crud-modal").classList.remove("hidden");
+
+        try {
+          const res = await fetch(`${API_URL}?action=getNextId`);
+          const data = await res.json();
+          if (data.status === "success")
+            document.getElementById("eqId").value = data.data;
+          else document.getElementById("eqId").value = "";
+        } catch (e) {
+          document.getElementById("eqId").value = "";
+        }
       }
 
       function editMobileItem(id) {
@@ -563,12 +1270,29 @@
         document.getElementById("modal-title").innerText = `✏️ แก้ไข: ${id}`;
         const item = globalEquipmentList.find((x) => x.Eq_ID == id);
         if (item) {
+          document.getElementById("btn-save-next").classList.add("hidden");
+          const btnMain = document.getElementById("btn-save-main");
+          btnMain.className =
+            "text-white font-bold text-sm px-3 py-1 bg-blue-600 rounded shadow active:scale-95";
+          btnMain.innerText = "บันทึกการแก้ไข";
+
           document.getElementById("eqId").value = item.Eq_ID || "";
           document.getElementById("eqName").value = item.Eq_Name || "";
           document.getElementById("eqBrand").value = item.Brand || "";
           document.getElementById("eqModel").value = item.Model || "";
           document.getElementById("eqSN").value = item.SN || "";
           document.getElementById("eqAssetId").value = item.Asset_ID || "";
+          document.getElementById("eqVendor").value = item.Vendor || "";
+          document.getElementById("eqPrice").value = item.Price || "";
+
+          let pDate = item.Purchase_Date
+            ? String(item.Purchase_Date).split("T")[0]
+            : "";
+          let wDate = item.Warranty_Expiry
+            ? String(item.Warranty_Expiry).split("T")[0]
+            : "";
+          document.getElementById("eqPurchaseDate").value = pDate;
+          document.getElementById("eqWarranty").value = wDate;
 
           const ev = (val) => {
             if (typeof val === "object" && val !== null) {
@@ -578,9 +1302,11 @@
             return val;
           };
           document.getElementById("eqCategory").value = ev(item.Category) || "";
+          filterAssetTypes();
+          document.getElementById("eqAssetType").value =
+            ev(item.Asset_Type) || "";
           document.getElementById("eqStatus").value = ev(item.Status) || "ว่าง";
           document.getElementById("eqLocation").value = ev(item.Location) || "";
-
           existingImagesToKeep = (item.Image_URL || "")
             .split(",")
             .filter((u) => u.trim() !== "");
@@ -598,11 +1324,8 @@
       function handleImageSelection(e) {
         const files = Array.from(e.target.files);
         const slots = 5 - (existingImagesToKeep.length + newImageFiles.length);
-        if (slots <= 0) {
-          Swal.fire("เต็มแล้ว", "อัปโหลดได้สูงสุด 5 ภาพ", "warning");
-          return;
-        }
-
+        if (slots <= 0)
+          return Swal.fire("เต็มแล้ว", "อัปโหลดได้สูงสุด 5 ภาพ", "warning");
         files.slice(0, slots).forEach((file) => {
           const reader = new FileReader();
           reader.onload = (evt) => {
@@ -621,10 +1344,10 @@
           let thumb = url.includes("drive.google.com/uc?id=")
             ? `https://drive.google.com/thumbnail?id=${url.split("id=")[1].split("&")[0]}&sz=w150`
             : url;
-          gal.innerHTML += `<div class="relative shrink-0"><img src="${thumb}" class="w-16 h-16 object-cover rounded border shadow-sm"><div onclick="rmOldImg(${i})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center cursor-pointer text-[10px] font-bold">X</div></div>`;
+          gal.innerHTML += `<div class="relative inline-block shrink-0"><img src="${thumb}" class="w-16 h-16 object-cover rounded border shadow-sm"><div onclick="rmOldImg(${i})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center cursor-pointer text-[10px] font-bold">X</div></div>`;
         });
         newImageFiles.forEach((img, i) => {
-          gal.innerHTML += `<div class="relative shrink-0"><img src="${img.previewUrl}" class="w-16 h-16 object-cover rounded border-2 border-blue-400"><div onclick="rmNewImg(${i})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center cursor-pointer text-[10px] font-bold">X</div></div>`;
+          gal.innerHTML += `<div class="relative inline-block shrink-0"><img src="${img.previewUrl}" class="w-16 h-16 object-cover rounded border-2 border-blue-400"><div onclick="rmNewImg(${i})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center cursor-pointer text-[10px] font-bold">X</div></div>`;
         });
       }
       function rmOldImg(i) {
@@ -636,13 +1359,33 @@
         renderEditGallery();
       }
 
-      async function saveEquipment() {
+      async function saveEquipment(isSaveAndNext) {
         const eqName = document.getElementById("eqName").value;
+        const assetId = document.getElementById("eqAssetId").value.trim();
+
         if (!eqName)
           return Swal.fire("เตือน", "กรุณากรอกชื่ออุปกรณ์", "warning");
 
+        if (assetId) {
+          const duplicate = globalEquipmentList.find((item) => {
+            const isSameAsset = String(item.Asset_ID || "").trim() === assetId;
+            const isNotCurrentItem =
+              String(item.Eq_ID || "").trim() !==
+              String(currentEditId || "").trim();
+            return isSameAsset && isNotCurrentItem;
+          });
+          if (duplicate) {
+            Swal.fire(
+              "ข้อมูลซ้ำ!",
+              `เลขครุภัณฑ์ "${assetId}" ถูกใช้ไปแล้วโดย:\n"${duplicate.Eq_Name}"\n(รหัส: ${duplicate.Eq_ID})`,
+              "warning",
+            );
+            return;
+          }
+        }
+
         Swal.fire({
-          title: "กำลังบันทึกข้อมูล...",
+          title: "กำลังประมวลผลรูปภาพ...",
           allowOutsideClick: false,
           didOpen: () => {
             Swal.showLoading();
@@ -655,10 +1398,15 @@
           brand: document.getElementById("eqBrand").value,
           model: document.getElementById("eqModel").value,
           sn: document.getElementById("eqSN").value,
-          assetId: document.getElementById("eqAssetId").value,
+          assetId: assetId,
           category: document.getElementById("eqCategory").value,
+          assetType: document.getElementById("eqAssetType").value,
           status: document.getElementById("eqStatus").value,
           location: document.getElementById("eqLocation").value,
+          vendor: document.getElementById("eqVendor").value,
+          price: document.getElementById("eqPrice").value,
+          purchaseDate: document.getElementById("eqPurchaseDate").value,
+          warranty: document.getElementById("eqWarranty").value,
           retainedImages: existingImagesToKeep.join(","),
           deletedImages: deletedImageUrls.join(","),
           images: [],
@@ -701,6 +1449,14 @@
           );
         }
 
+        Swal.fire({
+          title: "กำลังบันทึกข้อมูล...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
         try {
           const action = currentEditId ? "editEquipment" : "addEquipment";
           const req = await fetch(`${API_URL}?action=${action}`, {
@@ -708,16 +1464,46 @@
             body: JSON.stringify({ action: action, payload: payload }),
           });
           const resp = await req.json();
-
           if (resp.status === "success") {
-            Swal.fire({
-              icon: "success",
-              title: "สำเร็จ",
-              timer: 1500,
-              showConfirmButton: false,
-            });
-            closeMobileModal();
-            loadDataFromAPI();
+            const reload = await fetch(`${API_URL}?action=getEquipment`);
+            const reData = await reload.json();
+            if (reData.status === "success") {
+              globalEquipmentList = reData.data;
+              handleSearch();
+            }
+
+            if (isSaveAndNext) {
+              Swal.fire({
+                icon: "success",
+                title: "บันทึกสำเร็จ!",
+                text: "เพิ่มชิ้นต่อไปได้เลย",
+                showConfirmButton: false,
+                timer: 1500,
+              });
+              document.getElementById("eqId").value = "กำลังสร้างรหัส...";
+              fetch(`${API_URL}?action=getNextId`)
+                .then((res) => res.json())
+                .then((data) => {
+                  if (data.status === "success")
+                    document.getElementById("eqId").value = data.data;
+                });
+              document.getElementById("eqName").value = "";
+              document.getElementById("eqSN").value = "";
+              document.getElementById("eqAssetId").value = "";
+              currentEditId = null;
+              existingImagesToKeep = [];
+              deletedImageUrls = [];
+              newImageFiles = [];
+              renderEditGallery();
+            } else {
+              Swal.fire({
+                icon: "success",
+                title: "สำเร็จ",
+                timer: 1500,
+                showConfirmButton: false,
+              });
+              closeMobileModal();
+            }
           } else Swal.fire("Error", resp.message, "error");
         } catch (e) {
           Swal.fire("Error", "เชื่อมต่อล้มเหลว", "error");
@@ -725,7 +1511,7 @@
       }
 
       // ==========================================
-      // 4. สแกนเนอร์
+      // 5. สแกนเนอร์
       // ==========================================
       let html5QrCode = null;
       function openScanner() {
@@ -755,7 +1541,7 @@
           ? new URL(text).searchParams.get("id")
           : text;
         const item = globalEquipmentList.find((x) => x.Eq_ID === id);
-        if (item) editMobileItem(item.Eq_ID);
+        if (item) viewMobileItem(item.Eq_ID);
         else Swal.fire("ไม่พบ", `ไม่มีรหัส ${id}`, "warning");
       }
     </script>

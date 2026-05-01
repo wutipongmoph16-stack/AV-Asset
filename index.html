@@ -14,6 +14,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+      @import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap");
+      body {
+        font-family: "Sarabun", sans-serif;
+        background-color: #f3f4f6;
+      }
       .page-section {
         display: none;
       }
@@ -26,8 +31,15 @@
       .content-active {
         display: block;
       }
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
 
-      /* เพิ่มแอนิเมชันสำหรับ Modal */
+      /* แอนิเมชัน */
       @keyframes fadeIn {
         from {
           opacity: 0;
@@ -61,13 +73,13 @@
           display: none !important;
         }
         @page {
-          margin: 1cm; /* ขอบกระดาษ 1 ซม. */
+          margin: 1cm;
         }
         body {
           background-color: white;
           margin: 0;
           padding: 0;
-          -webkit-print-color-adjust: exact; /* บังคับพิมพ์สีพื้นหลัง */
+          -webkit-print-color-adjust: exact;
         }
         #main-app,
         #crud-modal,
@@ -75,33 +87,26 @@
         #login-page {
           display: none !important;
         }
-
         #print-container {
           width: 100%;
-          /* 💡 เอา display: block ออกจากตรงนี้ เพื่อให้ Grid ทำงานได้ */
         }
-
-        /* 📄 เลย์เอาต์แบบกระดาษ A4 (เรียงเป็นกริด 3 คอลัมน์) */
         #print-container.print-mode-a4 {
           display: grid !important;
-          grid-template-columns: repeat(3, 1fr); /* แบ่ง 3 คอลัมน์ */
-          gap: 15px; /* ระยะห่างช่องไฟ */
+          grid-template-columns: repeat(3, 1fr);
+          gap: 15px;
           padding: 0;
         }
-
         #print-container.print-mode-a4 .qr-card {
           width: 100% !important;
           max-width: none !important;
           margin: 0;
-          page-break-inside: avoid; /* ป้องกันสติกเกอร์โดนหั่นหน้ากระดาษ */
+          page-break-inside: avoid;
         }
-
-        /* 🏷️ เลย์เอาต์แบบเครื่องพิมพ์สติกเกอร์ม้วน (ดวงเดียว) */
         #print-container.print-mode-label {
           display: block !important;
         }
         #print-container.print-mode-label .qr-card {
-          page-break-after: always; /* ตัดหน้าใหม่ */
+          page-break-after: always;
           margin: 0;
           border: none;
           width: 100%;
@@ -111,14 +116,14 @@
     </style>
 
     <script>
-      // ถ้าขนาดหน้าจอน้อยกว่า 768px (มือถือ) ให้เด้งไปหน้า mobile.html
+      // ถ้าเข้าจากมือถือ ให้เด้งไปหน้า mobile.html (พ่วง ID สแกนไปด้วย)
       if (window.innerWidth < 768) {
-        // window.location.search คือการห้อยค่า ?id=... ตามไปด้วย (เผื่อสแกน QR)
         window.location.href = "mobile.html" + window.location.search;
       }
     </script>
   </head>
-  <body class="bg-gray-100 font-sans text-gray-800">
+  <body class="bg-gray-100 text-gray-800">
+    <!-- 🔒 หน้า Login -->
     <div
       id="login-page"
       class="page-section page-active min-h-screen items-center justify-center bg-blue-900"
@@ -132,17 +137,19 @@
         <p class="text-gray-500 mb-6">กรุณาเข้าสู่ระบบด้วย LINE</p>
         <button
           onclick="liffLogin()"
-          class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-full flex items-center justify-center gap-2 transition"
+          class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-full flex items-center justify-center gap-2 transition cursor-pointer"
         >
           💬 เข้าสู่ระบบด้วย LINE
         </button>
       </div>
     </div>
 
+    <!-- 💻 Main App -->
     <div
       id="main-app"
       class="page-section hidden min-h-screen flex-col md:flex-row"
     >
+      <!-- Mobile Navbar (Responsive) -->
       <div
         class="md:hidden bg-gray-900 text-white flex justify-between items-center p-4 shadow-md z-20 relative"
       >
@@ -161,13 +168,13 @@
           ☰
         </button>
       </div>
-
       <div
         id="mobile-menu-backdrop"
         onclick="toggleMobileMenu()"
         class="hidden fixed inset-0 bg-black/50 z-30 md:hidden backdrop-blur-sm transition-opacity"
       ></div>
 
+      <!-- Sidebar Menu -->
       <aside
         id="sidebar-menu"
         class="fixed md:static inset-y-0 left-0 z-40 w-64 bg-gray-800 text-white transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col h-screen md:min-h-screen shadow-2xl md:shadow-none overflow-y-auto no-print"
@@ -178,7 +185,6 @@
         >
           &times;
         </button>
-
         <div class="p-4 border-b border-gray-700 flex items-center gap-3">
           <img
             id="user-profile-img"
@@ -187,10 +193,11 @@
           />
           <div>
             <p id="user-display-name" class="font-bold text-sm">กำลังโหลด...</p>
-            <p class="text-xs text-green-400">ออนไลน์</p>
+            <p id="user-role-badge" class="text-xs text-green-400 font-bold">
+              ออนไลน์
+            </p>
           </div>
         </div>
-
         <nav class="flex-1 p-4">
           <ul class="space-y-2 text-sm" id="nav-menu-list">
             <li
@@ -231,9 +238,9 @@
             </li>
           </ul>
         </nav>
-
         <div class="p-4 border-t border-gray-700 mt-auto">
           <button
+            onclick="liffLogout()"
             class="w-full text-left text-red-400 hover:text-red-300 hover:bg-gray-700 p-3 rounded transition flex items-center gap-3 text-sm font-medium cursor-pointer"
           >
             🚪 <span>ออกจากระบบ</span>
@@ -241,9 +248,11 @@
         </div>
       </aside>
 
+      <!-- Main Content Area -->
       <main
         class="flex-1 p-4 md:p-6 w-full mx-auto overflow-y-auto relative h-[calc(100vh-64px)] md:h-screen"
       >
+        <!-- 📊 Page 1: Dashboard -->
         <div id="page-dashboard" class="content-page">
           <div class="mb-6">
             <h2 class="text-2xl font-bold">
@@ -339,6 +348,7 @@
           </div>
         </div>
 
+        <!-- ⚙️ Page 2: CRUD Management -->
         <div id="page-crud" class="content-page" style="display: none">
           <div
             class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4"
@@ -347,88 +357,101 @@
             <div class="flex gap-2 w-full sm:w-auto">
               <button
                 onclick="printSelectedQR()"
-                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded shadow flex-1 sm:flex-none"
+                id="btn-print-qr"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded shadow flex-1 sm:flex-none font-bold transition cursor-pointer"
               >
                 🖨️ พิมพ์ QR ที่เลือก
               </button>
               <button
                 onclick="openModal()"
-                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow flex-1 sm:flex-none"
+                id="btn-add-item"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow flex-1 sm:flex-none font-bold transition cursor-pointer"
               >
                 + เพิ่มอุปกรณ์ใหม่
               </button>
             </div>
           </div>
+
+          <!-- Control Bar (ค้นหา, หมวดหมู่, สลับมุมมอง) -->
           <div
-            class="flex flex-col sm:flex-row justify-between items-center bg-white p-3 rounded-t-lg border-b gap-3 shadow-sm border border-gray-200"
+            class="flex flex-col xl:flex-row justify-between items-center bg-white p-3 rounded-t-lg border-b gap-4 shadow-sm border border-gray-200 z-10 relative"
           >
-            <div class="flex items-center w-full sm:w-1/2 relative">
-              <span class="absolute left-3 text-gray-400">🔍</span>
-              <input
-                type="text"
-                id="searchInput"
-                oninput="handleSearch()"
-                placeholder="ค้นหารหัส, ชื่อ, ยี่ห้อ, รุ่น, สถานที่..."
-                class="w-full border pl-10 p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
-              />
+            <div class="flex gap-2 w-full xl:w-auto">
+              <div class="flex items-center w-full lg:w-96 relative">
+                <span class="absolute left-3 text-gray-400">🔍</span>
+                <input
+                  type="text"
+                  id="searchInput"
+                  oninput="handleFilters()"
+                  placeholder="ค้นหารหัส, ชื่อ, ครุภัณฑ์..."
+                  class="w-full border border-gray-300 pl-10 p-2.5 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 text-sm"
+                />
+              </div>
+              <button
+                onclick="toggleViewMode()"
+                id="btn-view-toggle"
+                class="bg-white border border-gray-300 w-12 rounded shadow-sm flex items-center justify-center text-xl hover:bg-gray-50 active:scale-95 transition shrink-0 cursor-pointer"
+              >
+                📇
+              </button>
             </div>
+
             <div
-              class="text-sm text-gray-500 font-semibold bg-gray-100 px-3 py-1 rounded"
+              id="category-container"
+              class="flex overflow-x-auto gap-2 w-full xl:flex-1 hide-scrollbar px-1 py-1"
+            ></div>
+
+            <div
+              class="flex gap-3 items-center w-full xl:w-auto justify-between xl:justify-end shrink-0"
             >
-              <span id="total-items">โหลดข้อมูล...</span>
+              <div
+                class="text-sm text-gray-500 font-semibold bg-gray-100 px-3 py-1.5 rounded whitespace-nowrap"
+              >
+                <span id="total-items">โหลดข้อมูล...</span>
+              </div>
+              <select
+                id="itemsPerPageSelect"
+                onchange="changeItemsPerPage()"
+                class="text-sm border border-gray-300 bg-white rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
+              >
+                <option value="10">10 / หน้า</option>
+                <option value="20">20 / หน้า</option>
+                <option value="50">50 / หน้า</option>
+              </select>
             </div>
           </div>
-          <div class="bg-white shadow overflow-x-auto border-x border-gray-200">
-            <table class="min-w-full text-left border-collapse">
-              <thead class="bg-gray-200 text-gray-700 text-sm">
-                <tr>
-                  <th class="py-3 px-4 border-b text-center w-10">
-                    <input
-                      type="checkbox"
-                      id="selectAll"
-                      onclick="toggleSelectAll()"
-                      class="w-4 h-4 text-blue-600 rounded cursor-pointer"
-                    />
-                  </th>
-                  <th class="py-3 px-4 border-b w-16">รูปภาพ</th>
-                  <th class="py-3 px-4 border-b w-24">รหัส</th>
-                  <th class="py-3 px-4 border-b min-w-[200px]">
-                    ข้อมูลอุปกรณ์
-                  </th>
-                  <th class="py-3 px-4 border-b w-40">สถานที่</th>
-                  <th class="py-3 px-4 border-b w-24">สถานะ</th>
-                  <th class="py-3 px-4 border-b text-center w-48">จัดการ</th>
-                </tr>
-              </thead>
-              <tbody id="crud-table-body">
-                <tr>
-                  <td colspan="7" class="text-center py-8 text-gray-500">
-                    ⏳ กำลังโหลดข้อมูล...
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+
+          <!-- พื้นที่แสดงข้อมูล (ตาราง หรือ การ์ด) -->
           <div
-            class="flex justify-between items-center bg-gray-50 p-4 rounded-b-lg shadow-sm border border-gray-200"
+            id="content-container"
+            class="bg-white border-x border-gray-200 min-h-[400px]"
+          >
+            <div class="text-center py-20 text-gray-500">
+              ⏳ กำลังโหลดข้อมูล...
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div
+            class="flex flex-col sm:flex-row justify-between items-center bg-gray-50 p-4 rounded-b-lg shadow-sm border border-gray-200 gap-4"
           >
             <div class="text-sm text-gray-600">
               แสดง
               <span id="page-info" class="font-bold text-blue-700">0 - 0</span>
-              จาก <span id="total-info" class="font-bold">0</span> รายการ
+              จาก <span id="total-info" class="font-bold">0</span> หน้า
             </div>
             <div class="flex gap-2">
               <button
                 onclick="prevPage()"
                 id="btn-prev"
-                class="px-4 py-1 border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-gray-700 transition"
+                class="px-4 py-1.5 border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-gray-700 transition cursor-pointer"
               >
                 ◀ ก่อนหน้า
               </button>
               <button
                 onclick="nextPage()"
                 id="btn-next"
-                class="px-4 py-1 border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-gray-700 transition"
+                class="px-4 py-1.5 border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-gray-700 transition cursor-pointer"
               >
                 ถัดไป ▶
               </button>
@@ -436,6 +459,7 @@
           </div>
         </div>
 
+        <!-- 📝 Modal: ฟอร์มเพิ่ม/แก้ไข (ยกระดับ) -->
         <div
           id="crud-modal"
           class="hidden fixed inset-0 bg-gray-900/60 backdrop-blur-sm items-center justify-center p-4 z-50 animate-fade-in overflow-y-auto"
@@ -475,7 +499,6 @@
                       📝 ข้อมูลทั่วไป
                     </h4>
                     <input type="hidden" id="eqId" />
-
                     <div class="mb-4">
                       <label class="block text-sm font-bold text-gray-700 mb-1"
                         >ชื่ออุปกรณ์ <span class="text-red-500">*</span></label
@@ -486,14 +509,12 @@
                         class="w-full border border-gray-300 p-2.5 rounded-md focus:ring-2 focus:ring-blue-500 outline-none transition"
                       />
                     </div>
-
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                       <div>
                         <label
                           class="block text-sm font-bold text-gray-700 mb-1"
                           >ยี่ห้อ (Brand)</label
-                        >
-                        <input
+                        ><input
                           type="text"
                           id="eqBrand"
                           class="w-full border border-gray-300 p-2.5 rounded-md focus:ring-2 focus:ring-blue-500 outline-none transition"
@@ -503,22 +524,19 @@
                         <label
                           class="block text-sm font-bold text-gray-700 mb-1"
                           >รุ่น (Model)</label
-                        >
-                        <input
+                        ><input
                           type="text"
                           id="eqModel"
                           class="w-full border border-gray-300 p-2.5 rounded-md focus:ring-2 focus:ring-blue-500 outline-none transition"
                         />
                       </div>
                     </div>
-
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label
                           class="block text-sm font-bold text-gray-700 mb-1"
                           >Serial Number</label
-                        >
-                        <input
+                        ><input
                           type="text"
                           id="eqSN"
                           class="w-full border border-gray-300 p-2.5 rounded-md focus:ring-2 focus:ring-blue-500 outline-none transition"
@@ -528,8 +546,7 @@
                         <label
                           class="block text-sm font-bold text-gray-700 mb-1"
                           >เลขครุภัณฑ์</label
-                        >
-                        <input
+                        ><input
                           type="text"
                           id="eqAssetId"
                           class="w-full border border-gray-300 p-2.5 rounded-md focus:ring-2 focus:ring-blue-500 outline-none transition"
@@ -542,7 +559,7 @@
                     class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm"
                   >
                     <h4
-                      class="text-slate-600 font-bold text-sm mb-4 border-b border-gray-200 pb-2 flex items-center gap-2"
+                      class="text-purple-600 font-bold text-sm mb-4 border-b border-gray-200 pb-2 flex items-center gap-2"
                     >
                       💰 ข้อมูลเพิ่มเติม (จัดซื้อ & รับประกัน)
                     </h4>
@@ -602,34 +619,28 @@
                     >
                       🏷️ หมวดหมู่ & สถานที่
                     </h4>
-
-                    <div class="mb-4">
-                      <label class="block text-sm font-bold text-gray-700 mb-1"
-                        >หมวดหมู่</label
-                      >
-                      <select
-                        id="eqCategory"
-                        class="w-full border border-gray-300 p-2.5 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                      >
-                        <option value="อุปกรณ์ระบบภาพ (Visual)">
-                          อุปกรณ์ระบบภาพ (Visual)
-                        </option>
-                        <option value="อุปกรณ์ระบบเสียง (Audio)">
-                          อุปกรณ์ระบบเสียง (Audio)
-                        </option>
-                        <option value="อุปกรณ์ระบบแสง (Lighting)">
-                          อุปกรณ์ระบบแสง (Lighting)
-                        </option>
-                        <option value="สายสัญญาณ (Cables)">
-                          สายสัญญาณ (Cables)
-                        </option>
-                        <option value="คอมพิวเตอร์และอุปกรณ์ต่อพ่วง (IT)">
-                          คอมพิวเตอร์และอุปกรณ์ต่อพ่วง (IT)
-                        </option>
-                        <option value="อื่นๆ (Others)">อื่นๆ (Others)</option>
-                      </select>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label
+                          class="block text-sm font-bold text-gray-700 mb-1"
+                          >หมวดหมู่ (การใช้งาน)</label
+                        >
+                        <select
+                          id="eqCategory"
+                          class="w-full border border-gray-300 p-2.5 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white cursor-pointer"
+                        ></select>
+                      </div>
+                      <div>
+                        <label
+                          class="block text-sm font-bold text-gray-700 mb-1"
+                          >ประเภท (ระเบียบพัสดุฯ)</label
+                        >
+                        <select
+                          id="eqAssetType"
+                          class="w-full border border-gray-300 p-2.5 rounded-md focus:ring-2 focus:ring-blue-500 outline-none font-bold text-indigo-600 bg-white cursor-pointer"
+                        ></select>
+                      </div>
                     </div>
-
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label
@@ -638,7 +649,7 @@
                         >
                         <select
                           id="eqStatus"
-                          class="w-full border border-gray-300 p-2.5 rounded-md focus:ring-2 focus:ring-blue-500 outline-none font-bold text-green-700 bg-white"
+                          class="w-full border border-gray-300 p-2.5 rounded-md focus:ring-2 focus:ring-blue-500 outline-none font-bold text-green-700 bg-white cursor-pointer"
                         >
                           <option value="ว่าง">✅ ว่าง</option>
                           <option value="ถูกยืม">🛒 ถูกยืม</option>
@@ -653,15 +664,8 @@
                         >
                         <select
                           id="eqLocation"
-                          class="w-full border border-gray-300 p-2.5 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                        >
-                          <option value="ศูนย์กลาง (ห้องเก็บอุปกรณ์)">
-                            ศูนย์กลาง (ห้องเก็บอุปกรณ์)
-                          </option>
-                          <option value="ห้องประชุมพระนารายณ์">
-                            ห้องประชุมพระนารายณ์
-                          </option>
-                        </select>
+                          class="w-full border border-gray-300 p-2.5 rounded-md focus:ring-2 focus:ring-blue-500 outline-none bg-white cursor-pointer"
+                        ></select>
                       </div>
                     </div>
                   </div>
@@ -674,7 +678,6 @@
                     >
                       🖼️ จัดการรูปภาพ (สูงสุด 5 ภาพ)
                     </h4>
-
                     <div
                       id="edit-image-gallery"
                       class="flex flex-wrap gap-3 mb-4 min-h-[6rem] p-3 bg-gray-50 rounded-md border border-dashed border-gray-300 items-center justify-center"
@@ -683,7 +686,6 @@
                         >ยังไม่มีรูปภาพ...</span
                       >
                     </div>
-
                     <input
                       type="file"
                       id="eqImage"
@@ -725,12 +727,13 @@
           </div>
         </div>
 
+        <!-- 📋 Modal: View Details -->
         <div
           id="view-modal"
           class="hidden fixed inset-0 bg-gray-900/60 backdrop-blur-sm items-center justify-center p-4 z-50 animate-fade-in"
         >
           <div
-            class="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col"
+            class="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col"
           >
             <div
               class="bg-slate-800 text-white p-4 flex justify-between items-center"
@@ -740,7 +743,7 @@
               </h2>
               <button
                 onclick="closeViewModal()"
-                class="text-gray-300 hover:text-white text-2xl font-bold"
+                class="text-gray-300 hover:text-white text-3xl font-bold cursor-pointer"
               >
                 &times;
               </button>
@@ -754,11 +757,11 @@
                     id="view-image"
                     src=""
                     alt="Equipment"
-                    class="w-40 h-40 object-cover rounded-lg border-2 border-gray-200 shadow-md"
+                    class="w-40 h-40 object-cover rounded-lg border-2 border-gray-200 shadow-md bg-white"
                   />
                   <div
                     id="view-gallery"
-                    class="flex gap-2 overflow-x-auto w-40 pb-1 scrollbar-hide"
+                    class="flex gap-2 overflow-x-auto w-40 pb-1 hide-scrollbar"
                   ></div>
                 </div>
                 <div class="flex-1">
@@ -782,88 +785,122 @@
                       📍
                       <span
                         id="view-location"
-                        class="font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded"
+                        class="font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100"
                       ></span>
                     </div>
                   </div>
                 </div>
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="border rounded-lg p-4">
+                <div class="border rounded-lg p-5 shadow-sm">
                   <h4
                     class="font-bold text-slate-700 border-b pb-2 mb-3 flex items-center gap-2"
                   >
                     ⚙️ ข้อมูลทางเทคนิค
                   </h4>
                   <ul class="text-sm space-y-3">
-                    <li>
-                      <span class="font-bold text-slate-700">หมวดหมู่:</span>
-                      <span id="view-category" class="text-slate-600"></span>
+                    <li
+                      class="flex justify-between border-b border-gray-100 pb-1"
+                    >
+                      <span class="font-bold text-slate-500">หมวดหมู่:</span>
+                      <span
+                        id="view-category"
+                        class="text-gray-800 text-right"
+                      ></span>
                     </li>
-                    <li>
-                      <span class="font-bold text-slate-700"
+                    <li
+                      class="flex justify-between border-b border-gray-100 pb-1"
+                    >
+                      <span class="font-bold text-slate-500">ประเภทพัสดุ:</span>
+                      <span
+                        id="view-type"
+                        class="text-indigo-600 font-bold text-right"
+                      ></span>
+                    </li>
+                    <li
+                      class="flex justify-between border-b border-gray-100 pb-1"
+                    >
+                      <span class="font-bold text-slate-500"
                         >ยี่ห้อ (Brand):</span
                       >
-                      <span id="view-brand" class="text-slate-600"></span>
+                      <span
+                        id="view-brand"
+                        class="text-gray-800 text-right"
+                      ></span>
                     </li>
-                    <li>
-                      <span class="font-bold text-slate-700"
+                    <li
+                      class="flex justify-between border-b border-gray-100 pb-1"
+                    >
+                      <span class="font-bold text-slate-500"
                         >รุ่น (Model):</span
                       >
                       <span
                         id="view-model"
-                        class="text-slate-600 break-all"
+                        class="text-gray-800 break-all text-right"
                       ></span>
                     </li>
-                    <li>
-                      <span class="font-bold text-slate-700">S/N:</span>
+                    <li
+                      class="flex justify-between border-b border-gray-100 pb-1"
+                    >
+                      <span class="font-bold text-slate-500">S/N:</span>
                       <span
                         id="view-sn"
-                        class="text-slate-600 font-mono text-orange-600 font-bold"
+                        class="font-mono text-orange-600 font-bold text-right"
                       ></span>
                     </li>
-                    <li>
-                      <span class="font-bold text-slate-700">เลขครุภัณฑ์:</span>
+                    <li class="flex justify-between">
+                      <span class="font-bold text-slate-500">เลขครุภัณฑ์:</span>
                       <span
                         id="view-asset"
-                        class="text-slate-600 text-blue-600"
+                        class="text-blue-600 font-bold text-right"
                       ></span>
                     </li>
                   </ul>
                 </div>
-                <div class="border rounded-lg p-4">
+                <div class="border rounded-lg p-5 shadow-sm">
                   <h4
                     class="font-bold text-slate-700 border-b pb-2 mb-3 flex items-center gap-2"
                   >
                     💰 ข้อมูลจัดซื้อ & รับประกัน
                   </h4>
                   <ul class="text-sm space-y-3">
-                    <li>
-                      <span class="font-bold text-slate-700"
+                    <li
+                      class="flex justify-between border-b border-gray-100 pb-1"
+                    >
+                      <span class="font-bold text-slate-500"
                         >ร้านค้า/บริษัท:</span
                       >
-                      <span id="view-vendor" class="text-slate-600"></span>
+                      <span
+                        id="view-vendor"
+                        class="text-gray-800 text-right"
+                      ></span>
                     </li>
-                    <li>
-                      <span class="font-bold text-slate-700">วันที่ซื้อ:</span>
+                    <li
+                      class="flex justify-between border-b border-gray-100 pb-1"
+                    >
+                      <span class="font-bold text-slate-500">วันที่ซื้อ:</span>
                       <span
                         id="view-purchase-date"
-                        class="text-slate-600"
+                        class="text-gray-800 text-right"
                       ></span>
                     </li>
-                    <li>
-                      <span class="font-bold text-slate-700">ราคา:</span>
-                      <span
-                        id="view-price"
-                        class="text-slate-600 font-bold text-green-600"
-                      ></span>
-                      บาท
+                    <li
+                      class="flex justify-between border-b border-gray-100 pb-1"
+                    >
+                      <span class="font-bold text-slate-500">ราคา:</span>
+                      <div>
+                        <span
+                          id="view-price"
+                          class="font-bold text-green-600 text-right"
+                        ></span>
+                        บาท
+                      </div>
                     </li>
-                    <li>
-                      <span class="font-bold text-slate-700">หมดประกัน:</span>
+                    <li class="flex justify-between">
+                      <span class="font-bold text-slate-500">หมดประกัน:</span>
                       <span
                         id="view-warranty"
-                        class="text-slate-600 font-bold text-red-600"
+                        class="font-bold text-red-600 text-right"
                       ></span>
                     </li>
                   </ul>
@@ -873,7 +910,7 @@
             <div class="bg-gray-100 p-4 border-t flex justify-end gap-3">
               <button
                 onclick="closeViewModal()"
-                class="px-6 py-2 bg-slate-600 text-white rounded shadow hover:bg-slate-700 font-bold"
+                class="px-6 py-2 bg-slate-600 text-white rounded shadow hover:bg-slate-700 font-bold transition cursor-pointer"
               >
                 ปิดหน้าต่าง
               </button>
@@ -881,6 +918,7 @@
           </div>
         </div>
 
+        <!-- 🔍 Modal: Lightbox (Zoom ภาพ) -->
         <div
           id="lightbox-modal"
           class="hidden fixed inset-0 bg-black/90 z-[60] items-center justify-center p-4 backdrop-blur-sm transition-opacity duration-300"
@@ -914,80 +952,15 @@
       </main>
     </div>
 
+    <!-- Container สำหรับพิมพ์ QR Code -->
     <div id="print-container" class="hidden"></div>
 
-    <div
-      id="register-modal"
-      class="hidden fixed inset-0 bg-slate-900/95 z-[100] flex items-center justify-center p-4 backdrop-blur-md"
-    >
-      <div
-        class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-slide-up"
-      >
-        <div class="bg-blue-600 p-6 text-white text-center">
-          <h2 class="text-xl font-bold">ยืนยันตัวตนเจ้าหน้าที่</h2>
-          <p class="text-xs text-blue-100 mt-1">
-            กรุณาเลือกชื่อเพื่อเข้าใช้งานระบบ (สสจ.ลพบุรี)
-          </p>
-        </div>
-        <form id="register-form" class="p-6 space-y-4">
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1"
-              >ค้นหาชื่อ-นามสกุล</label
-            >
-            <input
-              type="text"
-              id="reg-name"
-              list="staff-datalist"
-              placeholder="พิมพ์ชื่อเพื่อค้นหา..."
-              required
-              autocomplete="off"
-              class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-            />
-            <datalist id="staff-datalist"></datalist>
-          </div>
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1"
-              >กลุ่มงาน/ฝ่าย</label
-            >
-            <input
-              type="text"
-              id="reg-dept"
-              readonly
-              placeholder="ระบบจะระบุให้อัตโนมัติ"
-              class="w-full border border-gray-300 p-3 rounded-lg bg-gray-100 text-gray-600 font-medium"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1"
-              >เบอร์โทรศัพท์มือถือ</label
-            >
-            <input
-              type="tel"
-              id="reg-phone"
-              required
-              placeholder="08X-XXX-XXXX"
-              class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-            />
-          </div>
-          <button
-            type="submit"
-            class="w-full mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl shadow-md transition active:scale-95 text-lg"
-          >
-            ✅ ยืนยันข้อมูล
-          </button>
-        </form>
-      </div>
-    </div>
-
     <script>
-      // ⚙️ การตั้งค่าระบบ
-      const LIFF_ID = "ใส่_LIFF_ID_ของคุณที่นี่";
-
+      // 🛑 ตั้งค่าระบบ
+      const LIFF_ID = "2009938016-JZpuP1dr";
       const API_URL =
         "https://script.google.com/macros/s/AKfycbyRiTxTt0lgo0bAU7DIq7QB5jWx9Zx1EV_8Zs7mW1LphcgJT2WbK2LkrEV792PPTH5wSg/exec";
-
-      // 🛠️ สวิตช์ DEV MODE (true = ทดสอบบนคอมได้เลย ไม่ต้องง้อ LINE)
-      const DEV_MODE = true;
+      const DEV_MODE = false;
 
       const MOCK_USER = {
         userId: "U_dev_admin_001",
@@ -996,36 +969,43 @@
           "https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff",
       };
 
-      // --- 1. เริ่มต้นระบบ ---
+      // ตัวแปรหน่วยความจำส่วนกลาง
+      let globalEquipmentList = [];
+      let filteredList = [];
+      let categories = ["ทั้งหมด"];
+      let selectedCategory = "ทั้งหมด";
+      let viewMode = "table"; // Default PC เป็น Table
+      let currentPage = 1;
+      let itemsPerPage = 10;
+
+      let currentEditId = null;
+      let currentUserRole = "User";
+
+      let existingImagesToKeep = [];
+      let deletedImageUrls = [];
+      let newImageFiles = [];
+      let allAssetTypes = [];
+
+      // ==========================================
+      // 🚀 1. เริ่มต้นระบบ (Init & Auth)
+      // ==========================================
       async function initApp() {
         if (DEV_MODE) {
-          console.log("รันโหมด DEV");
           setupUserProfile(MOCK_USER);
         } else {
           try {
             await liff.init({ liffId: LIFF_ID });
-            if (liff.isLoggedIn()) {
-              setupUserProfile(await liff.getProfile());
-            }
+            if (liff.isLoggedIn()) setupUserProfile(await liff.getProfile());
           } catch (err) {
             console.error("LIFF Error:", err);
           }
         }
-        // โหลดข้อมูลต่างๆ หลังเข้าแอป
-        loadLocations();
-        loadEquipmentData();
-        loadCategories();
       }
 
-      let globalStaffList = []; // เก็บรายชื่อเจ้าหน้าที่
-
-      // ==========================================
-      // 🟢 1. จัดการโปรไฟล์และการตรวจสอบการลงทะเบียน
-      // ==========================================
       async function setupUserProfile(profile) {
         document.getElementById("login-page").style.display = "none";
         Swal.fire({
-          title: "กำลังตรวจสอบสถานะ...",
+          title: "กำลังตรวจสอบสิทธิ์...",
           allowOutsideClick: false,
           didOpen: () => {
             Swal.showLoading();
@@ -1033,177 +1013,61 @@
         });
 
         try {
-          const response = await fetch(
+          const res = await fetch(
             `${API_URL}?action=checkUserRegistration&userId=${profile.userId}`,
           );
-          const res = await response.json();
-
-          // 💡 เช็กโครงสร้างข้อมูลให้รัดกุม เพราะ GAS ของเราส่งข้อมูลหุ้มด้วย responseJSON
-          let isRegistered = false;
-          if (res.status === "success" && res.data) {
-            isRegistered = res.data.isRegistered;
-          } else if (res.isRegistered !== undefined) {
-            isRegistered = res.isRegistered;
+          const data = await res.json();
+          let isReg = false;
+          if (data.status === "success" && data.data) {
+            isReg = data.data.isRegistered;
+            currentUserRole = data.data.role || "User";
+          } else if (data.isRegistered !== undefined) {
+            isReg = data.isRegistered;
+            currentUserRole = data.role || "User";
           }
 
-          if (isRegistered) {
+          if (isReg) {
             Swal.close();
-            const mainApp = document.getElementById("main-app");
-            mainApp.classList.remove("hidden");
-            mainApp.style.display = "flex";
+            document.getElementById("main-app").classList.remove("hidden");
+            document.getElementById("main-app").style.display = "flex";
             document.getElementById("user-display-name").innerText =
               profile.displayName;
             document.getElementById("user-profile-img").src =
               profile.pictureUrl ||
               "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
-            changePage("dashboard");
+            let roleColor = "text-gray-400";
+            if (currentUserRole === "Admin") roleColor = "text-yellow-400";
+            if (currentUserRole === "Staff") roleColor = "text-green-400";
+            document.getElementById("user-role-badge").innerHTML =
+              `<span class="${roleColor}">⭐ ${currentUserRole} Mode</span>`;
+
+            applyRoleRestrictions();
+            loadEquipmentData(); // โหลดข้อมูลทุกอย่างที่นี่
           } else {
-            Swal.close();
-            openRegistrationForm(profile);
+            Swal.fire(
+              "ปฏิเสธการเข้าถึง",
+              "บัญชีของคุณยังไม่ได้ลงทะเบียนในระบบ AVEAM",
+              "error",
+            );
           }
         } catch (error) {
-          console.error("Check Reg Error:", error);
-          Swal.fire("ข้อผิดพลาด", "ไม่สามารถตรวจสอบสถานะสมาชิกได้", "error");
+          console.error(error);
+          Swal.fire("Error", "ไม่สามารถติดต่อฐานข้อมูลได้", "error");
         }
       }
 
-      // ==========================================
-      // 🟢 2. ระบบลงทะเบียนด้วย StaffList
-      // ==========================================
-      async function openRegistrationForm(profile) {
-        try {
-          Swal.fire({
-            title: "กำลังเตรียมข้อมูลลงทะเบียน...",
-            allowOutsideClick: false,
-            didOpen: () => {
-              Swal.showLoading();
-            },
-          });
-
-          const response = await fetch(
-            `${API_URL}?action=getStaffListForRegistration`,
-          );
-          const resJSON = await response.json();
-
-          // 💡 จุดสำคัญที่แก้ Error จอขาว: ต้องเจาะเข้าไปเอา .data ออกมา
-          let staffArray = [];
-          if (resJSON.status === "success" && Array.isArray(resJSON.data)) {
-            staffArray = resJSON.data;
-          } else if (Array.isArray(resJSON)) {
-            staffArray = resJSON;
-          }
-
-          globalStaffList = staffArray;
-
-          const dataList = document.getElementById("staff-datalist");
-          dataList.innerHTML = staffArray
-            .map((s) => `<option value="${s.name}">`)
-            .join("");
-
-          Swal.close();
-          document.getElementById("register-modal").classList.remove("hidden");
-
-          // ดักจับการพิมพ์ชื่อ เพื่อดึงกลุ่มงานอัตโนมัติ
-          document.getElementById("reg-name").oninput = function (e) {
-            const matched = globalStaffList.find(
-              (s) => s.name === e.target.value,
-            );
-            document.getElementById("reg-dept").value = matched
-              ? matched.department
-              : "";
-          };
-
-          // ส่งข้อมูลลงทะเบียนกลับไปที่ GAS
-          document.getElementById("register-form").onsubmit = async function (
-            e,
-          ) {
-            e.preventDefault();
-            const dept = document.getElementById("reg-dept").value;
-
-            if (!dept) {
-              return Swal.fire(
-                "คำเตือน",
-                "กรุณาเลือกชื่อที่มีในระบบเท่านั้น",
-                "warning",
-              );
-            }
-
-            Swal.fire({
-              title: "กำลังลงทะเบียน...",
-              allowOutsideClick: false,
-              didOpen: () => {
-                Swal.showLoading();
-              },
-            });
-
-            const payload = {
-              action: "registerLinkedUser",
-              payload: {
-                userId: profile.userId,
-                lineName: profile.displayName,
-                realName: document.getElementById("reg-name").value,
-                department: dept,
-                phone: document.getElementById("reg-phone").value,
-              },
-            };
-
-            const regRes = await fetch(API_URL, {
-              method: "POST",
-              body: JSON.stringify(payload),
-            });
-            const result = await regRes.json();
-
-            if (result.status === "success") {
-              Swal.fire("สำเร็จ!", "ยินดีต้อนรับเข้าสู่ระบบ", "success").then(
-                () => location.reload(),
-              );
-            } else {
-              Swal.fire(
-                "ข้อผิดพลาด",
-                result.message || "บันทึกข้อมูลไม่สำเร็จ",
-                "error",
-              );
-            }
-          };
-        } catch (e) {
-          console.error("Fetch Staff Error: ", e);
-          Swal.fire(
-            "ข้อผิดพลาด",
-            "โหลดรายชื่อเจ้าหน้าที่ไม่สำเร็จ (กรุณาเช็กหลังบ้าน)",
-            "error",
-          );
-        }
-      }
-
-      // ==========================================
-      // 🔄 ระบบสลับหน้าจอ (ย้ายขึ้นมาไว้ด้านบนเพื่อป้องกัน ReferenceError)
-      // ==========================================
-      function changePage(pageId) {
-        const allPages = document.querySelectorAll(".content-page");
-        allPages.forEach((p) => (p.style.display = "none"));
-
-        const target = document.getElementById("page-" + pageId);
-        if (target) {
-          target.style.display = "block";
+      function applyRoleRestrictions() {
+        changePage("dashboard");
+        const btnAdd = document.getElementById("btn-add-item");
+        const btnPrint = document.getElementById("btn-print-qr");
+        if (currentUserRole === "Admin" || currentUserRole === "Staff") {
+          if (btnAdd) btnAdd.style.display = "inline-block";
+          if (btnPrint) btnPrint.style.display = "inline-block";
         } else {
-          Swal.fire(
-            "กำลังพัฒนา",
-            "หน้านี้กำลังอยู่ระหว่างการพัฒนาครับ",
-            "info",
-          );
+          if (btnAdd) btnAdd.style.display = "none";
+          if (btnPrint) btnPrint.style.display = "none";
         }
-
-        // Highlight Menu
-        document.querySelectorAll("#nav-menu-list li").forEach((item) => {
-          item.classList.remove("bg-gray-700", "shadow-inner");
-          if (
-            item.getAttribute("onclick") &&
-            item.getAttribute("onclick").includes(pageId)
-          ) {
-            item.classList.add("bg-gray-700", "shadow-inner");
-          }
-        });
       }
 
       function liffLogin() {
@@ -1215,119 +1079,148 @@
           : (liff.logout(), window.location.reload());
       }
 
-      // --- 2. การสลับหน้า ---
-      function navigate(pageId) {
-        document.querySelectorAll(".content-page").forEach((el) => {
-          el.classList.remove("content-active");
-        });
-        document
-          .getElementById("page-" + pageId)
-          .classList.add("content-active");
-
-        // อัปเดตสีปุ่มเมนู
-        document
-          .querySelectorAll(".nav-btn")
-          .forEach((btn) => btn.classList.remove("bg-gray-700"));
-        event.currentTarget.classList.add("bg-gray-700");
-      }
-
-      // --- 3. ดึงข้อมูลห้องประชุม ---
-      function loadLocations() {
-        const selectEl = document.getElementById("eqLocation");
-
-        // กรณีใส่ API_URL แล้ว ให้ปลดคอมเมนต์โค้ดด้านล่างนี้
-        /*
-            fetch(`${API_URL}?action=getLocations`)
-                .then(res => res.json())
-                .then(data => {
-                    if(data.status === "success" && data.data.length > 0) {
-                        selectEl.innerHTML = '<option value="ห้องเก็บอุปกรณ์ส่วนกลาง">ศูนย์กลาง (ห้องเก็บอุปกรณ์)</option>';
-                        data.data.forEach(loc => {
-                            if(loc.name) selectEl.innerHTML += `<option value="${loc.name}">${loc.name}</option>`;
-                        });
-                    }
-                }).catch(err => console.error(err));
-            */
-
-        // 📌 ข้อมูลจำลอง (Mock Data) สำหรับโหมดทดสอบ
-        selectEl.innerHTML = `
-                <option value="ห้องเก็บอุปกรณ์ส่วนกลาง">ศูนย์กลาง (ห้องเก็บอุปกรณ์)</option>
-                <option value="ห้องประชุมพระนารายณ์">ห้องประชุมพระนารายณ์</option>
-                <option value="ห้องประชุมทานตะวัน">ห้องประชุมทานตะวัน</option>
-            `;
-      }
-
       // ==========================================
-      // 💾 ตัวแปรหน่วยความจำ (State Management)
+      // 📊 2. โหลดและจัดการข้อมูลทั้งหมด
       // ==========================================
-      let globalEquipmentList = []; // เก็บข้อมูลอุปกรณ์ทั้งหมดไว้ในเครื่อง เพื่อให้ค้นหาง่ายตอนกดแก้ไข
-      let currentEditId = null; // เช็กว่ากำลังแก้ไข ID ไหนอยู่ (ถ้า null = เพิ่มใหม่)
+      async function loadEquipmentData() {
+        const container = document.getElementById("content-container");
+        container.innerHTML = `<div class="text-center py-20 text-gray-500">⏳ กำลังโหลดข้อมูล...</div>`;
 
-      // ==========================================
-      // 🔄 ระบบดึงข้อมูล ค้นหา(Filter) และแบ่งหน้า(Pagination)
-      // ==========================================
+        try {
+          const [eqRes, catRes, locRes, typeRes] = await Promise.all([
+            fetch(`${API_URL}?action=getEquipment`),
+            fetch(`${API_URL}?action=getCategories`).catch(() => null),
+            fetch(`${API_URL}?action=getLocations`).catch(() => null),
+            fetch(`${API_URL}?action=getAssetTypes`).catch(() => null),
+          ]);
 
-      // ตัวแปรสำหรับระบบ Pagination
-      let filteredList = []; // เก็บข้อมูลที่ผ่านการกรองแล้ว
-      let currentPage = 1; // หน้าปัจจุบัน
-      const itemsPerPage = 10; // จำนวนแถวต่อ 1 หน้า (ปรับเปลี่ยนได้)
+          const buildOption = (item) => {
+            let name =
+              typeof item === "object"
+                ? Object.values(item).length > 1
+                  ? Object.values(item)[1]
+                  : Object.values(item)[0]
+                : item;
+            return `<option value="${name}">${name}</option>`;
+          };
 
-      function loadEquipmentData() {
-        const tableBody = document.getElementById("crud-table-body");
-        tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-500">⏳ กำลังโหลดข้อมูล...</td></tr>`;
-
-        fetch(`${API_URL}?action=getEquipment`)
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.status === "success") {
-              globalEquipmentList = data.data || [];
-              filteredList = [...globalEquipmentList]; // ก๊อปปี้ข้อมูลทั้งหมดมาเตรียมแสดงผล
-              currentPage = 1; // กลับไปหน้าแรกเสมอเวลาโหลดใหม่
-
-              document.getElementById("searchInput").value = ""; // เคลียร์ช่องค้นหา
-              renderTable(); // สั่งวาดตาราง
-              renderDashboard();
-            } else {
-              // 🔴 เพิ่มส่วนนี้: ถ้าหลังบ้านส่ง Error กลับมา ให้โชว์ในตารางเลย
-              console.error("Backend Error:", data.message);
-              tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-red-500 font-bold">❌ Error จากหลังบ้าน: ${data.message}</td></tr>`;
+          if (catRes) {
+            const cData = await catRes.json();
+            if (cData.status === "success")
+              document.getElementById("eqCategory").innerHTML = cData.data
+                .map(buildOption)
+                .join("");
+          }
+          if (locRes) {
+            const lData = await locRes.json();
+            if (lData.status === "success")
+              document.getElementById("eqLocation").innerHTML = lData.data
+                .map(buildOption)
+                .join("");
+          }
+          if (typeRes) {
+            const tData = await typeRes.json();
+            if (tData.status === "success") {
+              allAssetTypes = tData.data;
+              document.getElementById("eqAssetType").innerHTML = tData.data
+                .map(buildOption)
+                .join("");
             }
-          })
-          .catch((err) => {
-            console.error("Fetch Error:", err);
-            tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-red-500">⚠️ ข้อผิดพลาดในการโหลดข้อมูล</td></tr>`;
-          });
+          }
+
+          const eqData = await eqRes.json();
+          if (eqData.status === "success") {
+            globalEquipmentList = eqData.data || [];
+
+            const uniqueCats = [
+              ...new Set(
+                globalEquipmentList
+                  .map((i) => {
+                    let val = i.Category;
+                    if (typeof val === "object" && val !== null)
+                      val = Array.isArray(val)
+                        ? val[1] || val[0]
+                        : Object.values(val)[1] || Object.values(val)[0];
+                    return val;
+                  })
+                  .filter((c) => c),
+              ),
+            ];
+            categories = ["ทั้งหมด", ...uniqueCats];
+
+            renderCategoryChips();
+            filterAssetTypes();
+            handleFilters();
+            renderDashboard(); // อัปเดตกราฟ
+          } else {
+            container.innerHTML = `<div class="text-center py-20 text-red-500 font-bold">❌ Error: ${eqData.message}</div>`;
+          }
+        } catch (error) {
+          container.innerHTML = `<div class="text-center py-20 text-red-500 font-bold">⚠️ ข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล</div>`;
+        }
       }
 
-      // ฟังก์ชันค้นหาข้อมูล (พิมพ์ปุ๊บ กรองปั๊บ)
-      function handleSearch() {
-        const keyword = document
+      // ==========================================
+      // 🎛️ 3. ระบบ Filters & Toggle Views
+      // ==========================================
+      function renderCategoryChips() {
+        const catContainer = document.getElementById("category-container");
+        catContainer.innerHTML = "";
+        categories.forEach((cat) => {
+          const isActive = cat === selectedCategory;
+          const btnClass = isActive
+            ? "bg-blue-600 text-white font-bold border-blue-600 shadow-md"
+            : "bg-white text-gray-600 font-medium border-gray-200 shadow-sm hover:bg-gray-50";
+          catContainer.innerHTML += `<button onclick="selectCategory('${cat}')" class="px-4 py-2 rounded-full border text-sm whitespace-nowrap transition-all cursor-pointer ${btnClass}">${cat}</button>`;
+        });
+      }
+
+      function selectCategory(cat) {
+        selectedCategory = cat;
+        renderCategoryChips();
+        handleFilters();
+      }
+
+      function handleFilters() {
+        const query = document
           .getElementById("searchInput")
           .value.toLowerCase();
-
-        // กรองข้อมูลจากคำค้นหา (หาจาก รหัส, ชื่อ, ยี่ห้อ, รุ่น, สถานที่)
         filteredList = globalEquipmentList.filter((item) => {
-          const searchStr =
-            `${item.Eq_ID} ${item.Eq_Name} ${item.Brand} ${item.Model} ${item.Location}`.toLowerCase();
-          return searchStr.includes(keyword);
-        });
+          let itemCat = item.Category;
+          if (typeof itemCat === "object" && itemCat !== null)
+            itemCat = Array.isArray(itemCat)
+              ? itemCat[1] || itemCat[0]
+              : Object.values(itemCat)[1] || Object.values(itemCat)[0];
 
-        currentPage = 1; // ค้นหาใหม่ ให้กลับไปหน้า 1
-        renderTable();
+          const matchCategory =
+            selectedCategory === "ทั้งหมด" || itemCat === selectedCategory;
+          const matchSearch =
+            (item.Eq_ID && item.Eq_ID.toLowerCase().includes(query)) ||
+            (item.Eq_Name && item.Eq_Name.toLowerCase().includes(query)) ||
+            (item.Asset_ID && item.Asset_ID.toLowerCase().includes(query)) ||
+            (item.Brand && item.Brand.toLowerCase().includes(query)) ||
+            (item.Location && item.Location.toLowerCase().includes(query));
+          return matchCategory && matchSearch;
+        });
+        currentPage = 1;
+        renderContent();
       }
 
-      // ==========================================
-      // ฟังก์ชันวาดตารางตามข้อมูลหน้าปัจจุบัน (รวมระบบป้องกันรูปเสีย)
-      // ==========================================
-      function renderTable() {
-        const tableBody = document.getElementById("crud-table-body");
+      function toggleViewMode() {
+        viewMode = viewMode === "table" ? "card" : "table";
+        document.getElementById("btn-view-toggle").innerHTML =
+          viewMode === "table" ? "📇" : "📋";
+        renderContent();
+      }
 
-        // อัปเดตตัวเลขสรุปด้านบน
+      function renderContent() {
+        const container = document.getElementById("content-container");
+        const totalItems = filteredList.length;
         document.getElementById("total-items").innerText =
-          `พบ ${filteredList.length} รายการ`;
+          `พบ ${totalItems} รายการ`;
 
-        if (filteredList.length === 0) {
-          tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-red-500 font-bold">❌ ไม่พบข้อมูลที่ค้นหา</td></tr>`;
+        if (totalItems === 0) {
+          container.innerHTML = `<div class="text-center py-20 text-gray-500">❌ ไม่พบข้อมูลที่ค้นหา</div>`;
           document.getElementById("page-info").innerText = "0 - 0";
           document.getElementById("total-info").innerText = "0";
           document.getElementById("btn-prev").disabled = true;
@@ -1335,9 +1228,7 @@
           return;
         }
 
-        // คำนวณช่วงข้อมูลที่จะแสดงในหน้านี้
-        const totalPages = Math.ceil(filteredList.length / itemsPerPage);
-        if (currentPage < 1) currentPage = 1;
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
         if (currentPage > totalPages) currentPage = totalPages;
 
         const startIndex = (currentPage - 1) * itemsPerPage;
@@ -1347,175 +1238,184 @@
         );
         const paginatedItems = filteredList.slice(startIndex, endIndex);
 
-        // เริ่มวาดตาราง
-        tableBody.innerHTML = "";
-        paginatedItems.forEach((item) => {
-          let statusBadge = "";
-          if (item.Status === "ว่าง")
-            statusBadge = `<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold shadow-sm">✅ ว่าง</span>`;
-          else if (item.Status === "ถูกยืม")
-            statusBadge = `<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold shadow-sm">🛒 ถูกยืม</span>`;
-          else if (item.Status === "ส่งซ่อม")
-            statusBadge = `<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs font-bold shadow-sm">🔧 ส่งซ่อม</span>`;
-          else
-            statusBadge = `<span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-bold shadow-sm">${item.Status || "-"}</span>`;
+        container.innerHTML = "";
+        container.classList.add("fade-in");
+        setTimeout(() => container.classList.remove("fade-in"), 300);
 
-          const rawUrl = item.Image_URL || "";
-          const urlArray = rawUrl.split(",").filter((u) => u.trim() !== "");
+        if (viewMode === "card") renderAsCards(container, paginatedItems);
+        else renderAsTable(container, paginatedItems);
 
-          // แปลงลิ้งก์ทั้งหมดเป็น Thumbnail API สำหรับแกลเลอรี
-          const parsedUrls = urlArray.map((u) => {
-            let cleanUrl = u.trim();
-            if (cleanUrl.includes("drive.google.com/uc?id=")) {
-              const fileId = cleanUrl.split("id=")[1].split("&")[0];
-              return `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
-            }
-            return cleanUrl;
-          });
-
-          // ==========================================
-          // 🖼️ จัดการรูปภาพ (โชว์รูป / โชว์ตัวแทน / ป้องกันลิงก์เสีย)
-          // ==========================================
-          let imageTag = "";
-
-          if (parsedUrls.length > 0 && parsedUrls[0].trim() !== "") {
-            let thumbUrl = parsedUrls[0];
-            if (thumbUrl.includes("&sz=w800"))
-              thumbUrl = thumbUrl.replace("&sz=w800", "&sz=w150"); // ลดขนาดรูปตารางลง
-
-            imageTag = `<img src="${thumbUrl}" 
-                onerror="this.onerror=null; this.outerHTML='<div class=\\'w-12 h-12 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-[10px] text-gray-400 font-bold shadow-sm\\'>ไม่มีรูป</div>';" 
-                class="w-12 h-12 rounded-lg object-cover border shadow-sm cursor-zoom-in transition hover:scale-110" 
-                onclick='openLightbox(${JSON.stringify(parsedUrls)}, 0)'>`;
-          } else {
-            // ถ้าไม่มีรูปตั้งแต่แรก ให้โชว์กล่อง "ไม่มีรูป"
-            imageTag = `<div class="w-12 h-12 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-[10px] text-gray-400 font-bold shadow-sm">ไม่มีรูป</div>`;
-          }
-
-          tableBody.innerHTML += `
-                    <tr class="hover:bg-blue-50 border-b transition">
-                        <td class="py-3 px-4 text-center">
-                            <input type="checkbox" class="row-checkbox w-4 h-4 text-blue-600 rounded cursor-pointer" value="${item.Eq_ID}">
-                        </td>
-                        <td class="py-3 px-4">
-                            ${imageTag}
-                        </td>
-                        <td class="py-3 px-4 font-mono font-bold text-gray-700">${item.Eq_ID}</td>
-                        <td class="py-3 px-4">
-                            <div class="font-bold text-gray-900">${item.Eq_Name}</div>
-                            <div class="text-[11px] text-gray-500 mt-1 break-all">ยี่ห้อ: ${item.Brand || "-"} | รุ่น: ${item.Model || "-"}</div>
-                        </td>
-                        <td class="py-3 px-4 text-sm text-blue-600 font-semibold">${item.Location}</td>
-                        <td class="py-3 px-4">${statusBadge}</td>
-                        <td class="py-3 px-4 text-center">
-                            <button onclick="viewItem('${item.Eq_ID}')" class="text-blue-600 hover:bg-blue-100 mx-1 bg-white border border-blue-200 px-2 py-1 rounded shadow-sm transition">👁️</button>
-                            <button onclick="editItem('${item.Eq_ID}')" class="text-yellow-600 hover:bg-yellow-100 mx-1 bg-white border border-yellow-200 px-2 py-1 rounded shadow-sm transition">✏️</button>
-                            <button onclick="deleteItem('${item.Eq_ID}')" class="text-red-600 hover:bg-red-100 mx-1 bg-white border border-red-200 px-2 py-1 rounded shadow-sm transition">🗑️</button>
-                        </td>
-                    </tr>
-                `;
-        });
-
-        // อัปเดตตัวเลขแสดงผลการแบ่งหน้า
         document.getElementById("page-info").innerText =
           `${startIndex + 1} - ${endIndex}`;
-        document.getElementById("total-info").innerText = filteredList.length;
-
-        // จัดการเปิด/ปิด การกดปุ่ม ถัดไป/ก่อนหน้า
+        document.getElementById("total-info").innerText = totalPages;
         document.getElementById("btn-prev").disabled = currentPage === 1;
         document.getElementById("btn-next").disabled =
           currentPage === totalPages;
-
-        // ยกเลิกการติ๊กเลือกทั้งหมด (ป้องกันปัญหาติ๊กค้างไว้ข้ามหน้า)
-        document.getElementById("selectAll").checked = false;
       }
 
-      // ฟังก์ชันเปลี่ยนหน้า
+      // Helper UI
+      function getStatusBadge(status) {
+        if (status === "ว่าง")
+          return `<span class="bg-green-100 text-green-800 px-2 py-0.5 rounded text-[10px] font-bold shadow-sm border border-green-200">✅ ว่าง</span>`;
+        if (status === "ถูกยืม")
+          return `<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold shadow-sm border border-blue-200">🛒 ถูกยืม</span>`;
+        if (status === "ส่งซ่อม" || status === "ชำรุด")
+          return `<span class="bg-orange-100 text-orange-800 px-2 py-0.5 rounded text-[10px] font-bold shadow-sm border border-orange-200">🔧 ${status}</span>`;
+        return `<span class="bg-gray-100 text-gray-800 px-2 py-0.5 rounded text-[10px] font-bold shadow-sm border border-gray-200">${status || "-"}</span>`;
+      }
+      function getThumbUrl(rawUrl, size = "w150") {
+        let url = rawUrl ? rawUrl.split(",")[0].trim() : "";
+        if (!url) return "https://via.placeholder.com/150?text=No+Img";
+        if (url.includes("drive.google.com/uc?id="))
+          return `https://drive.google.com/thumbnail?id=${url.split("id=")[1].split("&")[0]}&sz=${size}`;
+        return url;
+      }
+
+      // ==========================================
+      // 🎨 วาด UI: Table & Cards
+      // ==========================================
+      function renderAsTable(container, items) {
+        let tbodyHtml = "";
+        items.forEach((item) => {
+          let statusBadge = getStatusBadge(item.Status);
+          let assetBadge = item.Asset_ID
+            ? `<span class="text-[10px] text-orange-600 font-mono bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">🏷️ ${item.Asset_ID}</span>`
+            : "";
+          let locationBadge = `<span class="text-[10px] text-gray-600 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">📍 ${item.Location || "-"}</span>`;
+
+          let checkboxCol = `-`;
+          let actionButtons = `<button onclick="viewItem('${item.Eq_ID}')" class="text-blue-600 hover:bg-blue-100 mx-0.5 bg-white border border-blue-200 px-2 py-1 rounded shadow-sm transition cursor-pointer">👁️</button>`;
+
+          if (currentUserRole === "Admin" || currentUserRole === "Staff") {
+            checkboxCol = `<input type="checkbox" class="row-checkbox w-4 h-4 text-blue-600 rounded cursor-pointer" value="${item.Eq_ID}">`;
+            actionButtons += `<button onclick="editItem('${item.Eq_ID}')" class="text-yellow-600 hover:bg-yellow-100 mx-0.5 bg-white border border-yellow-200 px-2 py-1 rounded shadow-sm transition cursor-pointer">✏️</button>`;
+            if (currentUserRole === "Admin") {
+              actionButtons += `<button onclick="deleteItem('${item.Eq_ID}')" class="text-red-600 hover:bg-red-100 mx-0.5 bg-white border border-red-200 px-2 py-1 rounded shadow-sm transition cursor-pointer">🗑️</button>`;
+            }
+          }
+
+          tbodyHtml += `
+                  <tr class="border-b border-gray-100 active:bg-blue-50 transition hover:bg-gray-50 cursor-pointer" onclick="viewItem('${item.Eq_ID}')">
+                      <td class="p-3 w-10 text-center align-top pt-4" onclick="event.stopPropagation();">${checkboxCol}</td>
+                      <td class="p-2 w-14 text-center align-top pt-3"><img src="${getThumbUrl(item.Image_URL)}" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=No+Img';" class="w-10 h-10 object-cover rounded-lg border shadow-sm inline-block"></td>
+                      <td class="p-2 font-mono font-bold text-blue-600 text-xs align-top pt-4 w-20">${item.Eq_ID}</td>
+                      <td class="p-2 align-top pt-3">
+                          <div class="font-bold text-gray-800 text-sm leading-tight">${item.Eq_Name || "-"}</div>
+                          <div class="mt-1.5 flex flex-wrap gap-1.5 items-center">
+                              ${statusBadge} ${assetBadge} ${locationBadge}
+                          </div>
+                      </td>
+                      <td class="p-2 text-center whitespace-nowrap align-top pt-3 w-28">${actionButtons}</td>
+                  </tr>`;
+        });
+
+        container.innerHTML = `
+              <div class="overflow-x-auto">
+                  <table class="w-full text-left border-collapse min-w-full">
+                      <thead class="bg-gray-100 text-gray-600 text-xs uppercase font-bold border-b border-gray-200">
+                          <tr>
+                              <th class="p-3 w-10 text-center"><input type="checkbox" id="selectAll" onclick="toggleSelectAll()" class="w-4 h-4 text-blue-600 rounded cursor-pointer ${currentUserRole === "User" ? "hidden" : ""}"></th>
+                              <th class="p-3 w-14 text-center">รูป</th>
+                              <th class="p-3 w-20">รหัส</th>
+                              <th class="p-3">ข้อมูลอุปกรณ์</th>
+                              <th class="p-3 text-center w-28">จัดการ</th>
+                          </tr>
+                      </thead>
+                      <tbody>${tbodyHtml}</tbody>
+                  </table>
+              </div>`;
+      }
+
+      function renderAsCards(container, items) {
+        let html = `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">`;
+        items.forEach((item) => {
+          let statusBadge = getStatusBadge(item.Status);
+          let checkboxCol = ``;
+          let actionButtons = ``;
+
+          if (currentUserRole === "Admin" || currentUserRole === "Staff") {
+            checkboxCol = `<div class="absolute top-3 right-3 z-10"><input type="checkbox" class="row-checkbox w-5 h-5 text-blue-600 rounded cursor-pointer drop-shadow-md" value="${item.Eq_ID}" onclick="event.stopPropagation();"></div>`;
+            actionButtons += `<button onclick="event.stopPropagation(); editItem('${item.Eq_ID}')" class="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm active:scale-95 transition cursor-pointer">✏️ แก้ไข</button>`;
+            if (currentUserRole === "Admin") {
+              actionButtons += `<button onclick="event.stopPropagation(); deleteItem('${item.Eq_ID}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm active:scale-95 transition cursor-pointer">🗑️ ลบ</button>`;
+            }
+          }
+
+          html += `
+                  <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col relative active:bg-gray-50 transition cursor-pointer hover:shadow-md hover:border-blue-300" onclick="viewItem('${item.Eq_ID}')">
+                      ${checkboxCol}
+                      <div class="flex gap-4 items-start">
+                        <img src="${getThumbUrl(item.Image_URL)}" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=No+Img';" class="w-20 h-20 object-cover rounded-xl bg-gray-50 shrink-0 border border-gray-100 shadow-sm">
+                        <div class="flex-1 min-w-0 pr-6">
+                            <p class="text-xs text-blue-600 font-mono font-bold">${item.Eq_ID}</p>
+                            <h3 class="font-bold text-gray-800 text-sm leading-tight mt-0.5 line-clamp-2">${item.Eq_Name || "ไม่มีชื่อ"}</h3>
+                        </div>
+                      </div>
+                      <div class="mt-3 bg-gray-50 p-2 rounded-lg text-[11px] text-gray-600 space-y-1">
+                          <p class="truncate">🔖 <span class="font-medium text-gray-800">${item.Brand || "-"} / ${item.Model || "-"}</span></p>
+                          <p class="truncate">🏷️ <span class="text-orange-600 font-mono font-medium">${item.Asset_ID || "-"}</span></p>
+                          <p class="truncate">📍 <span class="font-medium text-gray-800">${item.Location || "ไม่ระบุ"}</span></p>
+                      </div>
+                      <div class="mt-3 flex justify-between items-center">
+                          <div>${statusBadge}</div>
+                          <div class="flex gap-1 z-10">${actionButtons}</div>
+                      </div>
+                  </div>`;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+      }
+
+      function changeItemsPerPage() {
+        itemsPerPage = parseInt(
+          document.getElementById("itemsPerPageSelect").value,
+        );
+        currentPage = 1;
+        renderContent();
+      }
       function prevPage() {
         if (currentPage > 1) {
           currentPage--;
-          renderTable();
+          renderContent();
         }
       }
-
       function nextPage() {
         const totalPages = Math.ceil(filteredList.length / itemsPerPage);
         if (currentPage < totalPages) {
           currentPage++;
-          renderTable();
+          renderContent();
         }
       }
-      function loadCategories() {
-        const selectEl = document.getElementById("eqCategory");
-
-        // ใช้ Fetch ดึงข้อมูลจาก GAS
-        fetch(`${API_URL}?action=getCategories`)
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.status === "success" && data.data.length > 0) {
-              selectEl.innerHTML = ""; // ล้างค่าเดิมทิ้ง
-              data.data.forEach((cat) => {
-                if (cat.name)
-                  selectEl.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
-              });
-            }
-          })
-          .catch((err) => console.error(err));
-      }
-
-      // --- 4. จัดการ Modal & บันทึกข้อมูล ---
-      // ฟังก์ชันเมื่อกดปุ่ม "เพิ่มอุปกรณ์ใหม่"
-      async function openModal() {
-        currentEditId = null; // ยืนยันว่าเป็นการเพิ่มใหม่
-        document.getElementById("crud-form").reset();
-        document.getElementById("modal-title").innerText =
-          "📦 เพิ่มอุปกรณ์ใหม่";
-
-        // โชว์ Loading ที่ช่องรหัส
-        document.getElementById("eqId").value = "Generating ID...";
-        document.getElementById("btnSaveNext").style.display = "inline-block"; // โชว์ปุ่มบันทึกต่อเนื่อง
-
-        // 💡 ปรับตรงนี้: ไม่ต้อง fetch แล้ว ให้แสดงข้อความแทน
-        const eqIdInput = document.getElementById("eqId");
-        eqIdInput.value = ""; // เคลียร์ค่าทิ้ง
-        eqIdInput.placeholder = "รันอัตโนมัติเมื่อบันทึก";
-        eqIdInput.disabled = true; // ล็อกไม่ให้พิมพ์
-
-        // แสดง Modal
-        const modal = document.getElementById("crud-modal");
-        modal.classList.remove("hidden");
-        modal.classList.add("flex");
-      }
-
-      function closeModal() {
-        document.getElementById("crud-modal").classList.add("hidden");
-        document.getElementById("crud-modal").classList.remove("flex");
-      }
 
       // ==========================================
-      // 👁️ ฟังก์ชันแสดงหน้าต่างโปรไฟล์อุปกรณ์ และ แกลเลอรีภาพ
+      // 👁️ 4. ระบบเปิดดูรายละเอียด (View Details)
       // ==========================================
       function viewItem(id) {
-        // ค้นหาข้อมูลจากในหน่วยความจำ
         const item = globalEquipmentList.find((x) => x.Eq_ID == id);
         if (!item) return;
 
-        // หยอดข้อมูลทั่วไปลงในหน้าต่าง
         document.getElementById("view-id").innerText = item.Eq_ID;
-        document.getElementById("view-name").innerText =
-          item.Eq_Name || "ไม่มีชื่อ";
+        document.getElementById("view-name").innerText = item.Eq_Name || "-";
         document.getElementById("view-location").innerText =
           item.Location || "-";
 
+        const ev = (val) => {
+          if (typeof val === "object" && val !== null) {
+            let v = Array.isArray(val) ? val : Object.values(val);
+            return v.length > 1 ? v[1] : v[0];
+          }
+          return val;
+        };
+
         document.getElementById("view-category").innerText =
-          item.Category || "-";
+          ev(item.Category) || "-";
+        document.getElementById("view-type").innerText =
+          ev(item.Asset_Type) || "-";
         document.getElementById("view-brand").innerText = item.Brand || "-";
         document.getElementById("view-model").innerText = item.Model || "-";
         document.getElementById("view-sn").innerText = item.SN || "-";
         document.getElementById("view-asset").innerText = item.Asset_ID || "-";
-
         document.getElementById("view-vendor").innerText = item.Vendor || "-";
-
         document.getElementById("view-purchase-date").innerText =
           item.Purchase_Date
             ? new Date(item.Purchase_Date).toLocaleDateString("th-TH")
@@ -1525,71 +1425,43 @@
             ? new Date(item.Warranty_Expiry).toLocaleDateString("th-TH")
             : "-";
         document.getElementById("view-price").innerText = item.Price
-          ? Number(item.Price).toLocaleString()
+          ? Number(item.Price).toLocaleString("th-TH")
           : "-";
 
-        // จัดการสีป้ายสถานะ
         const statusBadge = document.getElementById("view-status-badge");
-        statusBadge.innerText = item.Status || "ไม่ทราบ";
-        statusBadge.className =
-          "px-3 py-1 rounded-full text-sm font-bold shadow-sm ";
-        if (item.Status === "ว่าง")
-          statusBadge.className += "bg-green-100 text-green-800";
-        else if (item.Status === "ถูกยืม")
-          statusBadge.className += "bg-blue-100 text-blue-800";
-        else if (item.Status === "ส่งซ่อม")
-          statusBadge.className += "bg-orange-100 text-orange-800";
-        else statusBadge.className += "bg-gray-200 text-gray-800";
+        statusBadge.innerHTML = getStatusBadge(item.Status);
 
-        // ==========================================
-        // 🖼️ จัดการรูประบบแกลเลอรี (1-5 ภาพ)
-        // ==========================================
-        const rawUrl =
-          item.Image_URL || "https://via.placeholder.com/150?text=No+Image";
-
-        // หั่นลิ้งก์ด้วยลูกน้ำ เผื่อมีหลายลิ้งก์ซ่อนอยู่ (แล้วกรองช่องว่างทิ้ง)
-        const urlArray = rawUrl.split(",").filter((url) => url.trim() !== "");
-
-        // แปลงลิ้งก์ทั้งหมดให้ใช้ Thumbnail API เพื่อแก้ปัญหาลิ้งก์ Drive บล็อก
-        const parsedUrls = urlArray.map((u) => {
-          let cleanUrl = u.trim();
-          if (cleanUrl.includes("drive.google.com/uc?id=")) {
-            const fileId = cleanUrl.split("id=")[1].split("&")[0];
-            return `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
+        // จัดการรูปภาพ
+        const rawUrl = item.Image_URL || "";
+        const urls = rawUrl.split(",").filter((u) => u.trim() !== "");
+        const parsedUrls = urls.map((u) => {
+          let cUrl = u.trim();
+          if (cUrl.includes("drive.google.com/uc?id=")) {
+            return `https://drive.google.com/thumbnail?id=${cUrl.split("id=")[1].split("&")[0]}&sz=w800`;
           }
-          return cleanUrl;
+          return cUrl;
         });
 
-        // 1. เซ็ตรูปหลักเป็นรูปแรกเสมอ
         const mainImgEl = document.getElementById("view-image");
         mainImgEl.src =
           parsedUrls.length > 0
             ? parsedUrls[0]
             : "https://via.placeholder.com/150?text=No+Image";
         mainImgEl.onerror = () => {
-          mainImgEl.src = "https://via.placeholder.com/150?text=Image+Error";
+          mainImgEl.src = "https://via.placeholder.com/150?text=Error";
         };
-
-        // ทำให้รูปหลักกดแล้วขยายแกลเลอรีได้
         mainImgEl.classList.add("cursor-zoom-in");
-        mainImgEl.onclick = () => openLightbox(parsedUrls, 0); // เปิดตั้งแต่รูปแรก
+        mainImgEl.onclick = () => openLightbox(parsedUrls, 0);
 
-        // 2. วาดรูปเล็กๆ (Thumbnails) ด้านล่าง
         const galleryDiv = document.getElementById("view-gallery");
-        galleryDiv.innerHTML = ""; // ล้างของเก่าทิ้งก่อน
-
-        // ถ้ามีรูปมากกว่า 1 รูป ถึงจะแสดงแกลเลอรีด้านล่าง
+        galleryDiv.innerHTML = "";
         if (parsedUrls.length > 1) {
           parsedUrls.forEach((url, idx) => {
             const thumb = document.createElement("img");
             thumb.src = url;
-            // แต่ง CSS ให้ดูเป็นปุ่มกด (รูปแรกที่ถูกเลือก จะมีกรอบสีฟ้า)
-            thumb.className = `w-10 h-10 object-cover rounded cursor-pointer border-2 transition opacity-70 hover:opacity-100 shrink-0 ${idx === 0 ? "border-blue-500 opacity-100" : "border-transparent"}`;
-
-            // เมื่อคลิกรูปเล็ก ให้เปลี่ยนรูปหลักด้านบน
+            thumb.className = `w-12 h-12 object-cover rounded cursor-pointer border-2 transition opacity-70 hover:opacity-100 shrink-0 ${idx === 0 ? "border-blue-500 opacity-100" : "border-transparent"}`;
             thumb.onclick = () => {
               mainImgEl.src = url;
-              // ลบกรอบสีฟ้าออกจากรูปอื่น แล้วมาใส่รูปที่คลิก
               Array.from(galleryDiv.children).forEach((child) => {
                 child.classList.remove("border-blue-500", "opacity-100");
                 child.classList.add("border-transparent", "opacity-70");
@@ -1600,64 +1472,415 @@
             galleryDiv.appendChild(thumb);
           });
         }
-
-        // เปิดหน้าต่าง Modal
-        const viewModal = document.getElementById("view-modal");
-        viewModal.classList.remove("hidden");
-        viewModal.classList.add("flex");
+        document.getElementById("view-modal").classList.remove("hidden");
+        document.getElementById("view-modal").classList.add("flex");
       }
 
       function closeViewModal() {
-        const viewModal = document.getElementById("view-modal");
-        viewModal.classList.add("hidden");
-        viewModal.classList.remove("flex");
+        document.getElementById("view-modal").classList.add("hidden");
+        document.getElementById("view-modal").classList.remove("flex");
       }
 
       // ==========================================
-      // 🖨️ ระบบเลือกและพิมพ์ QR Code
+      // ✏️ 5. ระบบเพิ่ม/แก้ไข และ กรอง Asset Type
       // ==========================================
+      function filterAssetTypes() {
+        const catValue = document.getElementById("eqCategory").value || "";
+        const typeSelect = document.getElementById("eqAssetType");
+        if (!typeSelect || allAssetTypes.length === 0) return;
 
-      // 1. ฟังก์ชันติ๊กเลือกทั้งหมดในตาราง
+        let allowedKeywords = [];
+        if (
+          catValue.includes("อุปกรณ์เสริม") ||
+          catValue.includes("เบ็ดเตล็ด") ||
+          catValue.includes("Accessories")
+        )
+          allowedKeywords = ["วัสดุ"];
+        else if (
+          catValue.includes("คอมพิวเตอร์") ||
+          catValue.includes("IT") ||
+          catValue.includes("เครือข่าย")
+        )
+          allowedKeywords = ["คอมพิวเตอร์"];
+        else if (
+          catValue.includes("ภาพ") ||
+          catValue.includes("เสียง") ||
+          catValue.includes("แสง") ||
+          catValue.includes("ถ่ายทอดสด") ||
+          catValue.includes("Camera") ||
+          catValue.includes("สายสัญญาณ") ||
+          catValue.includes("หัวแปลง")
+        )
+          allowedKeywords = ["โฆษณาและเผยแพร่"];
+        else
+          allowedKeywords = [
+            "ไฟฟ้าและวิทยุ",
+            "โฆษณาและเผยแพร่",
+            "คอมพิวเตอร์",
+            "วัสดุ",
+          ];
+
+        const currentSelectedType = typeSelect.value;
+        typeSelect.innerHTML = "";
+        let hasMatch = false;
+        allAssetTypes.forEach((item) => {
+          let typeName =
+            typeof item === "object"
+              ? Object.values(item).length > 1
+                ? Object.values(item)[1]
+                : Object.values(item)[0]
+              : item;
+          if (allowedKeywords.some((kw) => typeName.includes(kw))) {
+            const option = document.createElement("option");
+            option.value = typeName;
+            option.text = typeName;
+            typeSelect.appendChild(option);
+            if (typeName === currentSelectedType) {
+              option.selected = true;
+              hasMatch = true;
+            }
+          }
+        });
+        if (!hasMatch && typeSelect.options.length > 0) {
+          typeSelect.selectedIndex = 0;
+          typeSelect.classList.remove("text-indigo-600");
+          typeSelect.classList.add(
+            "bg-green-100",
+            "text-green-700",
+            "ring-2",
+            "ring-green-500",
+            "transition-all",
+            "duration-300",
+          );
+          setTimeout(() => {
+            typeSelect.classList.remove(
+              "bg-green-100",
+              "text-green-700",
+              "ring-2",
+              "ring-green-500",
+            );
+            typeSelect.classList.add("text-indigo-600");
+          }, 1000);
+        }
+      }
+      document
+        .getElementById("eqCategory")
+        .addEventListener("change", filterAssetTypes);
+
+      function openModal() {
+        currentEditId = null;
+        document.getElementById("crud-form").reset();
+        document.getElementById("modal-title").innerText =
+          "📦 เพิ่มอุปกรณ์ใหม่";
+        document.getElementById("btnSaveNext").style.display = "flex";
+
+        const eqIdInput = document.getElementById("eqId");
+        eqIdInput.value = "";
+        eqIdInput.placeholder = "รันรหัสอัตโนมัติเมื่อบันทึก";
+        eqIdInput.disabled = true;
+
+        filterAssetTypes();
+        existingImagesToKeep = [];
+        deletedImageUrls = [];
+        renderEditGallery();
+
+        const modal = document.getElementById("crud-modal");
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+      }
+
+      function editItem(id) {
+        currentEditId = id;
+        document.getElementById("modal-title").innerText =
+          `✏️ แก้ไขข้อมูล: ${id}`;
+        document.getElementById("btnSaveNext").style.display = "none";
+
+        const item = globalEquipmentList.find((x) => x.Eq_ID == id);
+        if (item) {
+          document.getElementById("eqId").value = item.Eq_ID;
+          document.getElementById("eqName").value = item.Eq_Name || "";
+          document.getElementById("eqBrand").value = item.Brand || "";
+          document.getElementById("eqModel").value = item.Model || "";
+          document.getElementById("eqSN").value = item.SN || "";
+          document.getElementById("eqAssetId").value = item.Asset_ID || "";
+          document.getElementById("eqVendor").value = item.Vendor || "";
+          document.getElementById("eqPurchaseDate").value = item.Purchase_Date
+            ? item.Purchase_Date.toString().substring(0, 10)
+            : "";
+          document.getElementById("eqPrice").value = item.Price || "";
+          document.getElementById("eqWarranty").value = item.Warranty_Expiry
+            ? item.Warranty_Expiry.toString().substring(0, 10)
+            : "";
+
+          const ev = (val) => {
+            if (typeof val === "object" && val !== null) {
+              let v = Array.isArray(val) ? val : Object.values(val);
+              return v.length > 1 ? v[1] : v[0];
+            }
+            return val;
+          };
+          document.getElementById("eqCategory").value = ev(item.Category) || "";
+          filterAssetTypes();
+          document.getElementById("eqAssetType").value =
+            ev(item.Asset_Type) || "";
+          document.getElementById("eqStatus").value = item.Status || "ว่าง";
+          document.getElementById("eqLocation").value = ev(item.Location) || "";
+
+          existingImagesToKeep = [];
+          deletedImageUrls = [];
+          const rawUrl = item.Image_URL || "";
+          if (rawUrl)
+            existingImagesToKeep = rawUrl
+              .split(",")
+              .filter((u) => u.trim() !== "");
+          renderEditGallery();
+        }
+
+        const modal = document.getElementById("crud-modal");
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+      }
+
+      function closeModal() {
+        document.getElementById("crud-modal").classList.add("hidden");
+        document.getElementById("crud-modal").classList.remove("flex");
+      }
+
+      function renderEditGallery() {
+        const gallery = document.getElementById("edit-image-gallery");
+        gallery.innerHTML = "";
+        if (existingImagesToKeep.length === 0) {
+          gallery.innerHTML =
+            '<span class="text-sm text-gray-400 my-auto">ยังไม่มีรูปภาพ...</span>';
+          return;
+        }
+        existingImagesToKeep.forEach((url, index) => {
+          let displayUrl = url;
+          if (url.includes("drive.google.com/uc?id="))
+            displayUrl = `https://drive.google.com/thumbnail?id=${url.split("id=")[1].split("&")[0]}&sz=w150`;
+          const wrapper = document.createElement("div");
+          wrapper.className = "relative inline-block";
+          wrapper.innerHTML = `<img src="${displayUrl}" class="w-16 h-16 object-cover rounded border-2 border-gray-300 shadow-sm"><div onclick="removeExistingImage(${index})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center cursor-pointer text-[10px] font-bold hover:bg-red-600 shadow-md">X</div>`;
+          gallery.appendChild(wrapper);
+        });
+      }
+
+      function removeExistingImage(index) {
+        deletedImageUrls.push(existingImagesToKeep.splice(index, 1)[0]);
+        renderEditGallery();
+      }
+
+      async function saveEquipment(isAddNext) {
+        const eqName = document.getElementById("eqName").value;
+        const assetId = document.getElementById("eqAssetId").value.trim();
+        if (!eqName)
+          return Swal.fire("แจ้งเตือน", "กรุณากรอกชื่ออุปกรณ์ *", "warning");
+
+        if (assetId) {
+          const duplicate = globalEquipmentList.find((item) => {
+            const isSameAsset = String(item.Asset_ID || "").trim() === assetId;
+            const isNotCurrentItem =
+              String(item.Eq_ID || "").trim() !==
+              String(currentEditId || "").trim();
+            return isSameAsset && isNotCurrentItem;
+          });
+          if (duplicate)
+            return Swal.fire(
+              "ตรวจพบข้อมูลซ้ำ!",
+              `เลขครุภัณฑ์ "${assetId}" ถูกใช้ไปแล้วโดย:\n"${duplicate.Eq_Name}"\n(รหัส: ${duplicate.Eq_ID})`,
+              "warning",
+            );
+        }
+
+        Swal.fire({
+          title: "กำลังประมวลผล...",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
+        const payloadData = {
+          eqId: currentEditId || "",
+          eqName: eqName,
+          brand: document.getElementById("eqBrand").value,
+          model: document.getElementById("eqModel").value,
+          sn: document.getElementById("eqSN").value,
+          assetId: assetId,
+          category: document.getElementById("eqCategory").value,
+          assetType: document.getElementById("eqAssetType").value,
+          status: document.getElementById("eqStatus").value,
+          location: document.getElementById("eqLocation").value,
+          vendor: document.getElementById("eqVendor").value,
+          purchaseDate: document.getElementById("eqPurchaseDate").value,
+          price: document.getElementById("eqPrice").value,
+          warranty: document.getElementById("eqWarranty").value,
+          retainedImages: existingImagesToKeep.join(","),
+          deletedImages: deletedImageUrls.join(","),
+          images: [],
+        };
+
+        const fileInput = document.getElementById("eqImage");
+        if (fileInput && fileInput.files.length > 0) {
+          const slotsAvailable = 5 - existingImagesToKeep.length;
+          const filesToUpload = Array.from(fileInput.files).slice(
+            0,
+            slotsAvailable,
+          );
+          payloadData.images = await Promise.all(
+            filesToUpload.map((file) => {
+              return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                  const img = new Image();
+                  img.onload = function () {
+                    const canvas = document.createElement("canvas");
+                    const MAX = 600;
+                    let w = img.width,
+                      h = img.height;
+                    if (w > h) {
+                      if (w > MAX) {
+                        h *= MAX / w;
+                        w = MAX;
+                      }
+                    } else {
+                      if (h > MAX) {
+                        w *= MAX / h;
+                        h = MAX;
+                      }
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+                    resolve({
+                      base64Image: canvas
+                        .toDataURL("image/jpeg", 0.8)
+                        .split(",")[1],
+                      mimeType: "image/jpeg",
+                    });
+                  };
+                  img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+              });
+            }),
+          );
+        }
+
+        const actionName = currentEditId ? "editEquipment" : "addEquipment";
+        fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: actionName, payload: payloadData }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.status === "success") {
+              Swal.fire({
+                icon: "success",
+                title: "บันทึกสำเร็จ",
+                text: `รหัสอุปกรณ์: ${data.data.eqId}`,
+                showConfirmButton: false,
+                timer: 1500,
+              });
+              if (isAddNext) {
+                document.getElementById("eqName").value = "";
+                document.getElementById("eqBrand").value = "";
+                document.getElementById("eqModel").value = "";
+                document.getElementById("eqSN").value = "";
+                document.getElementById("eqAssetId").value = "";
+                if (document.getElementById("eqImage"))
+                  document.getElementById("eqImage").value = "";
+                document.getElementById("eqName").focus();
+              } else {
+                closeModal();
+              }
+              loadEquipmentData();
+            } else {
+              Swal.fire(
+                "ข้อผิดพลาด",
+                data.message || "ไม่สามารถบันทึกได้",
+                "error",
+              );
+            }
+          })
+          .catch((err) => {
+            Swal.fire("ข้อผิดพลาด", "เชื่อมต่อฐานข้อมูลไม่สำเร็จ", "error");
+          });
+      }
+
+      function deleteItem(id) {
+        Swal.fire({
+          title: `ยืนยันการลบ ${id}?`,
+          text: "ข้อมูลนี้จะถูกลบออกจากระบบอย่างถาวร ไม่สามารถกู้คืนได้!",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "#d33",
+          cancelButtonColor: "#3085d6",
+          confirmButtonText: "🗑️ ลบข้อมูลเลย!",
+          cancelButtonText: "ยกเลิก",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            Swal.fire({
+              title: "กำลังลบข้อมูล...",
+              allowOutsideClick: false,
+              didOpen: () => {
+                Swal.showLoading();
+              },
+            });
+            fetch(API_URL, {
+              method: "POST",
+              body: JSON.stringify({
+                action: "deleteEquipment",
+                payload: { eqId: id },
+              }),
+            })
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.status === "success") {
+                  Swal.fire(
+                    "ลบสำเร็จ!",
+                    `อุปกรณ์รหัส ${id} ถูกลบออกจากระบบแล้ว`,
+                    "success",
+                  );
+                  loadEquipmentData();
+                } else {
+                  Swal.fire("ข้อผิดพลาด", data.message, "error");
+                }
+              })
+              .catch((err) => {
+                Swal.fire("ข้อผิดพลาด", "เชื่อมต่อฐานข้อมูลไม่สำเร็จ", "error");
+              });
+          }
+        });
+      }
+
+      // ==========================================
+      // 🖨️ 6. ระบบ Print QR Code
+      // ==========================================
       function toggleSelectAll() {
         const isChecked = document.getElementById("selectAll").checked;
         const checkboxes = document.querySelectorAll(".row-checkbox");
         checkboxes.forEach((cb) => (cb.checked = isChecked));
       }
 
-      // 2. ฟังก์ชันเมื่อกดปุ่ม "พิมพ์ QR ที่เลือก" จากหน้าตาราง
       function printSelectedQR() {
-        // กวาดหา Checkbox ที่ถูกติ๊ก แล้วดึงค่า Eq_ID มา
         const selectedIds = Array.from(
           document.querySelectorAll(".row-checkbox:checked"),
         ).map((cb) => cb.value);
-
-        if (selectedIds.length === 0) {
-          Swal.fire(
+        if (selectedIds.length === 0)
+          return Swal.fire(
             "แจ้งเตือน",
             "กรุณาติ๊ก ✔️ เลือกอุปกรณ์ที่ต้องการพิมพ์อย่างน้อย 1 รายการ",
             "warning",
           );
-          return;
-        }
-
-        // กรองเอาเฉพาะข้อมูลของ ID ที่ถูกเลือก
         const itemsToPrint = globalEquipmentList.filter((item) =>
           selectedIds.includes(item.Eq_ID),
         );
         triggerPrintDialog(itemsToPrint);
       }
 
-      // 3. ฟังก์ชันพิมพ์จากหน้าต่างโปรไฟล์ (พิมพ์ดวงเดียว)
-      function printSingleQR(id) {
-        const item = globalEquipmentList.find((x) => x.Eq_ID === id);
-        if (item) triggerPrintDialog([item]);
-      }
-
-      // 4. หน้าต่างเด้งถาม (เปลี่ยนข้อความอัตโนมัติตามจำนวนดวง)
       function triggerPrintDialog(itemsToPrint) {
         const isSingle = itemsToPrint.length === 1;
-
-        // 💡 ถ้าพิมพ์ดวงเดียว ข้อความจะไม่โชว์คำว่า "(หลายดวง)" ให้งงครับ
         const btnA4Text = isSingle
           ? "📄 เครื่องพิมพ์ A4 ทั่วไป"
           : "📄 กระดาษ A4 (เรียงหลายดวง)";
@@ -1683,40 +1906,29 @@
         });
       }
 
-      // ==========================================
-      // 🖨️ 5. ฟังก์ชันประกอบร่างและสั่งพิมพ์ (อัปเกรดเป็น URL)
-      // ==========================================
       function executePrint(items, modeClass) {
         const container = document.getElementById("print-container");
         container.innerHTML = "";
         container.className = modeClass;
-
         const BASE_MOBILE_URL =
-          "https://wutipongmoph16-stack.github.io/AV-Asset/mobile.html";
+          "https://wutipongmoph16-stack.github.io/AV-Asset/mobile.html"; // แก้ไข URL ให้ตรงกับเว็บใช้งานจริง
 
         items.forEach((item, index) => {
           const card = document.createElement("div");
           card.className =
             "qr-card flex items-center p-2 border border-gray-800 rounded-md bg-white box-border break-inside-avoid shadow-sm";
-
-          if (modeClass === "print-mode-label") {
-            card.style.maxWidth = "7cm";
-          }
+          if (modeClass === "print-mode-label") card.style.maxWidth = "7cm";
 
           card.innerHTML = `
-                    <div id="qr-code-${index}" class="mr-2 bg-white p-1 shrink-0 flex items-center justify-center"></div>
-                    <div class="flex-1 text-left overflow-hidden">
-                        <div class="font-bold text-[11px] text-blue-800 border-b border-gray-300 pb-0.5 mb-1 leading-tight">AVEAM สสจ.ลพบุรี</div>
-                        <div class="font-bold text-[13px] text-gray-900 leading-none mb-1">${item.Eq_ID}</div>
-                        <div class="text-[10px] text-gray-700 leading-tight truncate w-full">${item.Eq_Name || "-"}</div>
-                        <div class="text-[9px] text-gray-500 leading-tight mt-0.5">S/N: ${item.SN || "-"}</div>
-                    </div>
-                `;
+            <div id="qr-code-${index}" class="mr-2 bg-white p-1 shrink-0 flex items-center justify-center"></div>
+            <div class="flex-1 text-left overflow-hidden">
+                <div class="font-bold text-[11px] text-blue-800 border-b border-gray-300 pb-0.5 mb-1 leading-tight">AVEAM สสจ.ลพบุรี</div>
+                <div class="font-bold text-[13px] text-gray-900 leading-none mb-1">${item.Eq_ID}</div>
+                <div class="text-[10px] text-gray-700 leading-tight truncate w-full">${item.Eq_Name || "-"}</div>
+                <div class="text-[9px] text-gray-500 leading-tight mt-0.5">S/N: ${item.SN || "-"}</div>
+            </div>`;
           container.appendChild(card);
-
-          // 💡 เจน QR Code โดยใช้ URL แทนรหัสธรรมดา
           const qrDataUrl = `${BASE_MOBILE_URL}?id=${item.Eq_ID}`;
-
           new QRCode(document.getElementById(`qr-code-${index}`), {
             text: qrDataUrl,
             width: 56,
@@ -1731,391 +1943,49 @@
         setTimeout(() => {
           window.print();
           document.getElementById("print-container").classList.add("hidden");
-          document.getElementById("selectAll").checked = false;
+          const sa = document.getElementById("selectAll");
+          if (sa) sa.checked = false;
           toggleSelectAll();
         }, 300);
       }
-      // ==========================================
-      // ฟังก์ชันดึงข้อมูลมาใส่ฟอร์มเพื่อแก้ไข (Edit)
-      // ==========================================
 
       // ==========================================
-      // 💾 ฟังก์ชันบันทึกข้อมูล (รองรับอัปโหลดหลายรูปสูงสุด 5 รูป)
+      // 🔍 7. Lightbox ภาพใหญ่
       // ==========================================
-
-      // ==========================================
-      // ✏️ ระบบแก้ไข และ จัดการแกลเลอรีรูปภาพ
-      // ==========================================
-      let existingImagesToKeep = []; // ตัวแปรเก็บลิ้งก์รูปที่ยังไม่ถูกลบ
-
-      function editItem(id) {
-        currentEditId = id;
-        document.getElementById("modal-title").innerText =
-          `✏️ แก้ไขข้อมูล: ${id}`;
-        document.getElementById("btnSaveNext").style.display = "none";
-
-        const item = globalEquipmentList.find((x) => x.Eq_ID == id);
-        if (item) {
-          // หยอดข้อมูลลงช่อง Text ต่างๆ (เหมือนเดิม)
-          document.getElementById("eqId").value = item.Eq_ID;
-          document.getElementById("eqName").value = item.Eq_Name || "";
-          document.getElementById("eqBrand").value = item.Brand || "";
-          document.getElementById("eqModel").value = item.Model || "";
-          document.getElementById("eqSN").value = item.SN || "";
-          document.getElementById("eqAssetId").value = item.Asset_ID || "";
-          document.getElementById("eqVendor").value = item.Vendor || "";
-          document.getElementById("eqPurchaseDate").value = item.Purchase_Date
-            ? item.Purchase_Date.toString().substring(0, 10)
-            : "";
-          document.getElementById("eqPrice").value = item.Price || "";
-          document.getElementById("eqWarranty").value = item.Warranty_Expiry
-            ? item.Warranty_Expiry.toString().substring(0, 10)
-            : "";
-          document.getElementById("eqCategory").value = item.Category || "";
-          document.getElementById("eqStatus").value = item.Status || "ว่าง";
-          document.getElementById("eqLocation").value = item.Location || "";
-
-          // จัดการรูปภาพเดิมให้มาแสดงในโซนแกลเลอรี
-          existingImagesToKeep = [];
-          const rawUrl = item.Image_URL || "";
-          if (rawUrl)
-            existingImagesToKeep = rawUrl
-              .split(",")
-              .filter((u) => u.trim() !== "");
-          renderEditGallery();
-        }
-
-        const modal = document.getElementById("crud-modal");
-        modal.classList.remove("hidden");
-        modal.classList.add("flex");
-      }
-
-      // ==========================================
-      // ✏️ ระบบแก้ไข และ จัดการแกลเลอรีรูปภาพ (ลบถาวร)
-      // ==========================================
-      let deletedImageUrls = []; // 🗑️ ตัวแปรใหม่! เก็บลิ้งก์รูปที่ถูกกดกากบาท
-
-      function editItem(id) {
-        currentEditId = id;
-        document.getElementById("modal-title").innerText =
-          `✏️ แก้ไขข้อมูล: ${id}`;
-        document.getElementById("btnSaveNext").style.display = "none";
-
-        const item = globalEquipmentList.find((x) => x.Eq_ID == id);
-        if (item) {
-          document.getElementById("eqId").value = item.Eq_ID;
-          document.getElementById("eqName").value = item.Eq_Name || "";
-          document.getElementById("eqBrand").value = item.Brand || "";
-          document.getElementById("eqModel").value = item.Model || "";
-          document.getElementById("eqSN").value = item.SN || "";
-          document.getElementById("eqAssetId").value = item.Asset_ID || "";
-          document.getElementById("eqVendor").value = item.Vendor || "";
-          document.getElementById("eqPurchaseDate").value = item.Purchase_Date
-            ? item.Purchase_Date.toString().substring(0, 10)
-            : "";
-          document.getElementById("eqPrice").value = item.Price || "";
-          document.getElementById("eqWarranty").value = item.Warranty_Expiry
-            ? item.Warranty_Expiry.toString().substring(0, 10)
-            : "";
-          document.getElementById("eqCategory").value = item.Category || "";
-          document.getElementById("eqStatus").value = item.Status || "ว่าง";
-          document.getElementById("eqLocation").value = item.Location || "";
-
-          // จัดการรูปภาพ
-          existingImagesToKeep = [];
-          deletedImageUrls = []; // รีเซ็ตถังขยะทุกครั้งที่เปิดหน้าต่างแก้ไข
-
-          const rawUrl = item.Image_URL || "";
-          if (rawUrl)
-            existingImagesToKeep = rawUrl
-              .split(",")
-              .filter((u) => u.trim() !== "");
-          renderEditGallery();
-        }
-
-        const modal = document.getElementById("crud-modal");
-        modal.classList.remove("hidden");
-        modal.classList.add("flex");
-      }
-
-      function renderEditGallery() {
-        const gallery = document.getElementById("edit-image-gallery");
-        gallery.innerHTML = "";
-
-        if (existingImagesToKeep.length === 0) {
-          gallery.innerHTML =
-            '<span class="text-xs text-gray-400 my-auto">ยังไม่มีรูปภาพ...</span>';
-          return;
-        }
-
-        existingImagesToKeep.forEach((url, index) => {
-          let displayUrl = url;
-          if (url.includes("drive.google.com/uc?id=")) {
-            displayUrl = `https://drive.google.com/thumbnail?id=${url.split("id=")[1].split("&")[0]}&sz=w150`;
-          }
-          const wrapper = document.createElement("div");
-          wrapper.className = "relative inline-block";
-          wrapper.innerHTML = `
-                    <img src="${displayUrl}" class="w-16 h-16 object-cover rounded border-2 border-gray-300 shadow-sm">
-                    <div onclick="removeExistingImage(${index})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center cursor-pointer text-[10px] font-bold hover:bg-red-600 shadow-md">X</div>
-                `;
-          gallery.appendChild(wrapper);
-        });
-      }
-
-      // 🗑️ เมื่อกด (X) ลบรูป
-      function removeExistingImage(index) {
-        const removedUrl = existingImagesToKeep.splice(index, 1)[0]; // ลบออกจากของที่ต้องเก็บ
-        deletedImageUrls.push(removedUrl); // เอาลิ้งก์ที่ถูกลบ ไปใส่ไว้ในถังขยะเตรียมส่งให้ GAS
-        renderEditGallery();
-      }
-
-      async function saveEquipment(isAddNext) {
-        const eqName = document.getElementById("eqName").value;
-        if (!eqName) {
-          Swal.fire("แจ้งเตือน", "กรุณากรอกชื่ออุปกรณ์ *", "warning");
-          return;
-        }
-
-        Swal.fire({
-          title: "กำลังบันทึกข้อมูล...",
-          allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
-          },
-        });
-
-        const payloadData = {
-          eqId: currentEditId || "",
-          eqName: eqName,
-          brand: document.getElementById("eqBrand").value,
-          model: document.getElementById("eqModel").value,
-          sn: document.getElementById("eqSN").value,
-          assetId: document.getElementById("eqAssetId").value,
-          category: document.getElementById("eqCategory").value,
-          status: document.getElementById("eqStatus").value,
-          location: document.getElementById("eqLocation").value,
-          vendor: document.getElementById("eqVendor").value,
-          purchaseDate: document.getElementById("eqPurchaseDate").value,
-          price: document.getElementById("eqPrice").value,
-          warranty: document.getElementById("eqWarranty").value,
-
-          // 📦 ข้อมูลรูปรวมร่าง!
-          retainedImages: existingImagesToKeep.join(","), // รูปที่รอดชีวิต
-          deletedImages: deletedImageUrls.join(","), // รูปที่ถูกสั่งประหาร
-          images: [], // รูปใหม่
-        };
-
-        const fileInput = document.getElementById("eqImage");
-        if (fileInput && fileInput.files.length > 0) {
-          const slotsAvailable = 5 - existingImagesToKeep.length;
-          const filesToUpload = Array.from(fileInput.files).slice(
-            0,
-            slotsAvailable,
-          );
-
-          payloadData.images = await Promise.all(
-            filesToUpload.map((file) => {
-              return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                  const img = new Image();
-                  img.onload = function () {
-                    const canvas = document.createElement("canvas");
-                    const MAX = 600;
-                    let w = img.width,
-                      h = img.height;
-                    if (w > h) {
-                      if (w > MAX) {
-                        h *= MAX / w;
-                        w = MAX;
-                      }
-                    } else {
-                      if (h > MAX) {
-                        w *= MAX / h;
-                        h = MAX;
-                      }
-                    }
-                    canvas.width = w;
-                    canvas.height = h;
-                    const ctx = canvas.getContext("2d");
-                    ctx.drawImage(img, 0, 0, w, h);
-                    resolve({
-                      base64Image: canvas
-                        .toDataURL("image/jpeg", 0.8)
-                        .split(",")[1],
-                      mimeType: "image/jpeg",
-                    });
-                  };
-                  img.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-              });
-            }),
-          );
-        }
-        sendDataToBackend(payloadData, isAddNext);
-      }
-
-      // 2. ฟังก์ชันยิง API ไปหา GAS
-      function sendDataToBackend(payloadData, isAddNext) {
-        // เช็กว่ากำลัง เพิ่มใหม่ (addEquipment) หรือ แก้ไข (editEquipment)
-        const actionName = currentEditId ? "editEquipment" : "addEquipment";
-
-        fetch(API_URL, {
-          method: "POST",
-          body: JSON.stringify({ action: actionName, payload: payloadData }),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.status === "success") {
-              Swal.fire({
-                icon: "success",
-                title: "บันทึกสำเร็จ",
-                text: `รหัสอุปกรณ์: ${data.data.eqId}`,
-                showConfirmButton: false,
-                timer: 1500,
-              });
-
-              if (isAddNext) {
-                // เคลียร์เฉพาะช่องที่ต้องกรอกใหม่
-                document.getElementById("eqName").value = "";
-                document.getElementById("eqBrand").value = "";
-                document.getElementById("eqModel").value = "";
-                document.getElementById("eqSN").value = "";
-                document.getElementById("eqAssetId").value = "";
-                if (document.getElementById("eqImage"))
-                  document.getElementById("eqImage").value = "";
-                document.getElementById("eqName").focus(); // เด้งไปช่องชื่อทันที
-              } else {
-                closeModal(); // ปิดหน้าต่าง
-              }
-
-              loadEquipmentData(); // โหลดตารางใหม่เพื่อโชว์ข้อมูลล่าสุด
-            } else {
-              Swal.fire(
-                "ข้อผิดพลาด",
-                data.message || "ไม่สามารถบันทึกได้",
-                "error",
-              );
-            }
-          })
-          .catch((err) => {
-            console.error(err);
-            Swal.fire("ข้อผิดพลาด", "เชื่อมต่อฐานข้อมูลไม่สำเร็จ", "error");
-          });
-      }
-
-      // --- 5. ลบอุปกรณ์ ---
-      // ==========================================
-      // 🗑️ ฟังก์ชันลบข้อมูล (ยิง API ไป GAS)
-      // ==========================================
-      function deleteItem(id) {
-        Swal.fire({
-          title: `ยืนยันการลบ ${id}?`,
-          text: "ข้อมูลนี้จะถูกลบออกจากระบบอย่างถาวร ไม่สามารถกู้คืนได้!",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonColor: "#d33",
-          cancelButtonColor: "#3085d6",
-          confirmButtonText: "🗑️ ลบข้อมูลเลย!",
-          cancelButtonText: "ยกเลิก",
-        }).then((result) => {
-          if (result.isConfirmed) {
-            // โชว์สถานะกำลังลบ
-            Swal.fire({
-              title: "กำลังลบข้อมูล...",
-              allowOutsideClick: false,
-              didOpen: () => {
-                Swal.showLoading();
-              },
-            });
-
-            // ยิง API ไปหาหลังบ้าน
-            fetch(API_URL, {
-              method: "POST",
-              body: JSON.stringify({
-                action: "deleteEquipment",
-                payload: { eqId: id },
-              }),
-            })
-              .then((res) => res.json())
-              .then((data) => {
-                if (data.status === "success") {
-                  Swal.fire(
-                    "ลบสำเร็จ!",
-                    `อุปกรณ์รหัส ${id} ถูกลบออกจากระบบแล้ว`,
-                    "success",
-                  );
-                  loadEquipmentData(); // รีเฟรชตารางใหม่ทันที
-                } else {
-                  Swal.fire("ข้อผิดพลาด", data.message, "error");
-                }
-              })
-              .catch((err) => {
-                console.error(err);
-                Swal.fire("ข้อผิดพลาด", "เชื่อมต่อฐานข้อมูลไม่สำเร็จ", "error");
-              });
-          }
-        });
-      }
-
-      // ==========================================
-      // 🔍 ฟังก์ชันขยายรูปภาพ และควบคุมแกลเลอรี (Lightbox Gallery)
-      // ==========================================
-      let lightboxImageUrls = []; // เก็บลิ้งก์รูปภาพทั้งหมดในชุด
-      let currentLightboxIndex = 0; // ลำดับรูปปัจจุบัน
-
+      let lightboxImageUrls = [];
+      let currentLightboxIndex = 0;
       function openLightbox(urls, index = 0) {
-        // urls: อาจเป็นลิ้งก์เดียว (string) หรือหลายลิ้งก์ (array)
         lightboxImageUrls = Array.isArray(urls) ? urls : [urls];
         currentLightboxIndex = index;
-
         if (lightboxImageUrls.length === 0 || !lightboxImageUrls[0]) return;
-
-        const modal = document.getElementById("lightbox-modal");
-        modal.classList.remove("hidden");
-        modal.classList.add("flex");
-
-        updateLightboxImage(); // สั่งวาดรูป
+        document.getElementById("lightbox-modal").classList.remove("hidden");
+        document.getElementById("lightbox-modal").classList.add("flex");
+        updateLightboxImage();
       }
-
       function updateLightboxImage() {
         const imgEl = document.getElementById("lightbox-image");
-        const prevBtn = document.getElementById("lightbox-prev");
-        const nextBtn = document.getElementById("lightbox-next");
-
         if (lightboxImageUrls.length === 0) return;
-
-        // ตรวจสอบ Index ไม่ให้หลุดช่วง
         if (currentLightboxIndex < 0) currentLightboxIndex = 0;
         if (currentLightboxIndex >= lightboxImageUrls.length)
           currentLightboxIndex = lightboxImageUrls.length - 1;
 
         let displayUrl = lightboxImageUrls[currentLightboxIndex];
-        if (displayUrl.includes("drive.google.com/uc?id=")) {
+        if (displayUrl.includes("drive.google.com/uc?id="))
           displayUrl = `https://drive.google.com/thumbnail?id=${displayUrl.split("id=")[1].split("&")[0]}&sz=w800`;
-        }
-
         imgEl.src = displayUrl;
         imgEl.onerror = () => {
-          imgEl.src = "https://via.placeholder.com/150?text=Image+Error";
+          imgEl.src = "https://via.placeholder.com/150?text=Error";
         };
-
-        // ทำแอนิเมชันเด้งขยาย
         imgEl.classList.remove("scale-95");
-
-        // จัดการเปิด/ปิด ปุ่ม ซ้าย-ขวา
-        prevBtn.disabled = currentLightboxIndex === 0;
-        nextBtn.disabled =
+        document.getElementById("lightbox-prev").disabled =
+          currentLightboxIndex === 0;
+        document.getElementById("lightbox-next").disabled =
           currentLightboxIndex === lightboxImageUrls.length - 1;
       }
-
       function changeLightboxImage(step) {
         currentLightboxIndex += step;
         updateLightboxImage();
       }
-
       function closeLightbox() {
         const modal = document.getElementById("lightbox-modal");
         const imgEl = document.getElementById("lightbox-image");
@@ -2125,30 +1995,21 @@
           modal.classList.remove("flex");
         }, 200);
       }
-
-      // เพิ่มการควบคุมด้วยคีย์บอร์ด (ลูกศร ซ้าย/ขวา และ Esc)
       document.addEventListener("keydown", (e) => {
         const modal = document.getElementById("lightbox-modal");
         if (modal.classList.contains("hidden")) return;
-
         if (e.key === "ArrowLeft") changeLightboxImage(-1);
         else if (e.key === "ArrowRight") changeLightboxImage(1);
         else if (e.key === "Escape") closeLightbox();
       });
 
-      // start Dashboard
-
       // ==========================================
-      // 📊 ระบบ Dashboard & สถิติ
+      // 📊 8. Dashboard (Chart.js)
       // ==========================================
       let statusChartInstance = null;
       let categoryChartInstance = null;
-
       function renderDashboard() {
-        // ถ้ายังไม่มีข้อมูล ให้หยุดทำงานก่อน
         if (!globalEquipmentList || globalEquipmentList.length === 0) return;
-
-        // 1. คำนวณตัวเลขสำหรับการ์ดสรุป
         const total = globalEquipmentList.length;
         const available = globalEquipmentList.filter(
           (item) => item.Status === "ว่าง",
@@ -2160,22 +2021,15 @@
           (item) => item.Status === "ส่งซ่อม" || item.Status === "ชำรุด",
         ).length;
 
-        // อัปเดตตัวเลขขึ้นหน้าจอ
         document.getElementById("dash-total").innerText = total;
         document.getElementById("dash-available").innerText = available;
         document.getElementById("dash-borrowed").innerText = borrowed;
         document.getElementById("dash-repair").innerText = repair;
 
-        // =====================================
-        // 2. เตรียมข้อมูลวาดกราฟโดนัท (สถานะ)
-        // =====================================
         const statusCtx = document
           .getElementById("statusChart")
           .getContext("2d");
-
-        // ลบกราฟเก่าทิ้งก่อนวาดใหม่ (ป้องกันบั๊กกราฟซ้อนทับกันเมื่อรีเฟรช)
         if (statusChartInstance) statusChartInstance.destroy();
-
         statusChartInstance = new Chart(statusCtx, {
           type: "doughnut",
           data: {
@@ -2183,7 +2037,7 @@
             datasets: [
               {
                 data: [available, borrowed, repair],
-                backgroundColor: ["#22c55e", "#eab308", "#ef4444"], // สีเขียว, เหลือง, แดง
+                backgroundColor: ["#22c55e", "#eab308", "#ef4444"],
                 hoverOffset: 4,
               },
             ],
@@ -2191,40 +2045,34 @@
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-              legend: { position: "bottom" },
-            },
+            plugins: { legend: { position: "bottom" } },
           },
         });
 
-        // =====================================
-        // 3. เตรียมข้อมูลวาดกราฟแท่ง (หมวดหมู่)
-        // =====================================
-        // จัดกลุ่มนับจำนวนตาม Category
         const categoryCounts = {};
         globalEquipmentList.forEach((item) => {
-          const cat = item.Category || "ไม่ระบุหมวดหมู่";
-          categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+          let cat = item.Category;
+          if (typeof cat === "object" && cat !== null)
+            cat = Array.isArray(cat)
+              ? cat[1] || cat[0]
+              : Object.values(cat)[1] || Object.values(cat)[0];
+          categoryCounts[cat || "ไม่ระบุหมวดหมู่"] =
+            (categoryCounts[cat || "ไม่ระบุหมวดหมู่"] || 0) + 1;
         });
-
-        // แยกชื่อหมวดหมู่ กับ จำนวน ออกเป็น 2 Array เพื่อป้อนให้กราฟ
-        const catLabels = Object.keys(categoryCounts);
-        const catData = Object.values(categoryCounts);
 
         const categoryCtx = document
           .getElementById("categoryChart")
           .getContext("2d");
         if (categoryChartInstance) categoryChartInstance.destroy();
-
         categoryChartInstance = new Chart(categoryCtx, {
           type: "bar",
           data: {
-            labels: catLabels,
+            labels: Object.keys(categoryCounts),
             datasets: [
               {
                 label: "จำนวนอุปกรณ์ (ชิ้น)",
-                data: catData,
-                backgroundColor: "#3b82f6", // สีฟ้า
+                data: Object.values(categoryCounts),
+                backgroundColor: "#3b82f6",
                 borderRadius: 4,
               },
             ],
@@ -2232,72 +2080,50 @@
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false }, // ปิด Legend เพราะมีแค่แท่งสีเดียว
-            },
-            scales: {
-              y: { beginAtZero: true, ticks: { stepSize: 1 } },
-            },
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
           },
         });
       }
-      // end Dashboard
 
       // ==========================================
-      // 📱 ระบบจัดการเมนูบนมือถือ (Hamburger Menu)
+      // 📱 9. ระบบเมนู
       // ==========================================
       function toggleMobileMenu() {
         const sidebar = document.getElementById("sidebar-menu");
         const backdrop = document.getElementById("mobile-menu-backdrop");
-
         if (sidebar.classList.contains("-translate-x-full")) {
-          // ถ้าเมนูปิดอยู่ -> ให้สไลด์เปิด
           sidebar.classList.remove("-translate-x-full");
           backdrop.classList.remove("hidden");
         } else {
-          // ถ้าเมนูเปิดอยู่ -> ให้สไลด์ปิด
           sidebar.classList.add("-translate-x-full");
           backdrop.classList.add("hidden");
         }
       }
 
-      // ==========================================
-      // 🔄 ระบบสลับหน้าจอ (Navigation)
-      // ==========================================
       function changePage(pageId) {
-        // 1. ดึงหน้าทั้งหมดที่มีคลาส .content-page มาซ่อนไว้ก่อน
-        const allPages = document.querySelectorAll(".content-page");
-        allPages.forEach((page) => {
+        document.querySelectorAll(".content-page").forEach((page) => {
           page.style.display = "none";
         });
-
-        // 2. ค้นหาหน้าที่ผู้ใช้กดเลือก แล้วสั่งให้แสดงผล
         const targetPage = document.getElementById("page-" + pageId);
         if (targetPage) {
           targetPage.style.display = "block";
         } else {
-          // ถ้ายังไม่ได้สร้างหน้านั้น ให้แจ้งเตือนชั่วคราว
           Swal.fire(
             "กำลังพัฒนา",
             "หน้านี้กำลังอยู่ในระหว่างการพัฒนาครับ 🚧",
             "info",
           );
         }
-
-        // 3. อัปเดตสีของปุ่มเมนูด้านซ้าย ให้รู้ว่ากำลังอยู่หน้าไหน (Highlight)
-        const menuItems = document.querySelectorAll("#nav-menu-list li");
-        menuItems.forEach((item) => {
-          // ล้างสีสถานะ Active ออกให้หมดก่อน
+        document.querySelectorAll("#nav-menu-list li").forEach((item) => {
           item.classList.remove("bg-gray-700", "shadow-inner");
-
-          // ถ้าเมนูไหนตรงกับหน้าปัจจุบัน ให้ใส่สีเข้ม
           if (item.getAttribute("onclick").includes(pageId)) {
             item.classList.add("bg-gray-700", "shadow-inner");
           }
         });
       }
 
-      // เริ่มแอป
+      // Start Call
       initApp();
     </script>
   </body>

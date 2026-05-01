@@ -1139,6 +1139,34 @@
           console.error(error);
         }
       }
+
+      // 💡 ตัวแปรจำลองสิทธิ์สำหรับ Mobile (ค่าเริ่มต้นเป็น User)
+      // กรณีใช้จริง แนะนำให้พกค่า Role มาด้วย หรือให้ล็อกอินก่อนหากต้องการความปลอดภัยสูง
+      let currentUserRole = "Staff"; // 💡 ปรับค่านี้เพื่อทดสอบ (Admin, Staff, User)
+
+      // ==========================================
+      // 🔒 ระบบจำกัดสิทธิ์ในมือถือ (รองรับ Admin, Staff, User)
+      // ==========================================
+      function applyRoleRestrictions() {
+        const fabBtn = document.querySelector(
+          "button[onclick='openMobileModal()']",
+        );
+        const editBtn = document.querySelector(
+          "button[onclick='editFromView()']",
+        );
+
+        if (currentUserRole === "Admin" || currentUserRole === "Staff") {
+          // 🟢 Admin & Staff: แสดงปุ่ม + เพิ่มใหม่ และปุ่ม ✏️ แก้ไข
+          if (fabBtn) fabBtn.style.display = "flex";
+          if (editBtn) editBtn.style.display = "inline-block";
+
+          // หมายเหตุ: Mobile ปัจจุบันยังไม่มีปุ่มลบ ถ้าอนาคตเพิ่มเข้ามา ต้องมาเขียนดักซ่อนปุ่มลบสำหรับ Staff ตรงนี้เพิ่มครับ
+        } else {
+          // 🔴 User: ซ่อนปุ่ม + (บวกลอยๆ) และซ่อนปุ่ม "✏️ แก้ไข" ในหน้าต่างรายละเอียด
+          if (fabBtn) fabBtn.style.display = "none";
+          if (editBtn) editBtn.style.display = "none";
+        }
+      }
       // ==========================================
       // 👁️ 6. ดูรายละเอียด และ Lightbox (View & Zoom)
       // ==========================================
